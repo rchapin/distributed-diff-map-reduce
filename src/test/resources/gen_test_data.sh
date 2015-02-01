@@ -1,0 +1,16 @@
+#!/bin/bash
+
+NUM_RECORDS=$1
+OUT_FILE_NAME=$2
+
+RECORD_STATIC_DATA="This is record "
+
+COUNTER=0
+
+while [ "$COUNTER" -le "$NUM_RECORDS" ];
+do
+
+	COUNTER=$((COUNTER + 1))
+	echo "$RECORD_STATIC_DATA $COUNTER" >> $OUT_FILE_NAME
+
+done
