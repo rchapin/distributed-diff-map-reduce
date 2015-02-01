@@ -1,6 +1,6 @@
 # A Distributed Differential Tool
 
-**By:** Ryan Chapin <rchapin@nbinteractive.com>
+**By:** Ryan Chapin [Contact Info](http://www.ryanchapin.com/contact.html)
 
 Distributed-Diff is a utility for comparing large amounts of ASCII text.  Developed to aid in the testing of systems where potentially millions of records could be generated and needing to be able to do a diff against the expected and generated output.
 
