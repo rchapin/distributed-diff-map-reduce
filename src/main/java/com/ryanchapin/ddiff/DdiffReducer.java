@@ -24,22 +24,26 @@ public class DdiffReducer extends Reducer<Text, TaggedTextWithCountWritableCompa
 	}
 	
 	@Override
-	protected void reduce(Text key, Iterable<TaggedTextWithCountWritableComparable> values, Context context) throws IOException, InterruptedException {
-	   
+	protected void reduce(Text key, Iterable<TaggedTextWithCountWritableComparable> values, Context context)
+	      throws IOException, InterruptedException
+	{   
 	   // Separate out the values based on their source
 	   Map<Text, Integer> referenceMap = new HashMap<Text, Integer>();
 	   Map<Text, Integer> testMap      = new HashMap<Text, Integer>();
 	   
 	   Source source = null;
 	   int count = 0;
-	   for (TaggedTextWithCountWritableComparable value : values) {
+	   TaggedTextWithCountWritableComparable value = null;
+	   Iterator<TaggedTextWithCountWritableComparable> valuesItr = values.iterator();
+	   while (valuesItr.hasNext()) {
 
+	      value = valuesItr.next();
          count = value.getCount().get();
          
          // Ensure that we don't have some invalid Text value for our
          // Source enum.
 	      try {
-	         source = Source.valueOf(value.getSource().toString());
+	         source = Source.valueOf(value.getSource().toString().toUpperCase());
 	      } catch (IllegalArgumentException e) {
 	         String errMsg = "Invalid source value found in reduce record";
 	         LOGGER.error(errMsg + ", " + e.toString());
@@ -69,9 +73,9 @@ public class DdiffReducer extends Reducer<Text, TaggedTextWithCountWritableCompa
 	   Integer testCount = null;
 	   int diff          = 0;
 	   
-	   Iterator<Map.Entry<Text, Integer>> itr = referenceMap.entrySet().iterator();
-	   while (itr.hasNext()) {
-	      Map.Entry<Text, Integer> entry = itr.next();
+	   Iterator<Map.Entry<Text, Integer>> refMapItr = referenceMap.entrySet().iterator();
+	   while (refMapItr.hasNext()) {
+	      Map.Entry<Text, Integer> entry = refMapItr.next();
 	      
 	      // Is there a record in the testMap for this key
          refKey = entry.getKey();

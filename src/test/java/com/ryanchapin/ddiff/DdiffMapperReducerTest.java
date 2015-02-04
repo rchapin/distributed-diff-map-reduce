@@ -1,7 +1,5 @@
 package com.ryanchapin.ddiff;
 
-import static org.junit.Assert.assertEquals;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -85,47 +83,6 @@ public class DdiffMapperReducerTest extends BaseTest{
 	   mapDriverTest     = null;
 		reduceDriver      = null;
 		mockHashGenerator = null;
-	}
-	
-	private <E extends Enum<E>> Map<E, Long> getCounters(Counters counters, Class<E> enumType) {
-	   Map<E, Long> retVal = new HashMap<E, Long>();
-	   long   count = 0;
-	   
-	   E[] values = enumType.getEnumConstants();
-	   for (E value : values) {
-	      LOGGER.debug("value = {}", value.toString());
-	      count = counters.findCounter(value).getValue();
-	      retVal.put(value, count);
-	   }
-	   return retVal;
-	}
-
-   private <E extends Enum<E>> void validateCounters(
-	      Counters counters, Map<E, Long> expected, Class<E> enumType)
-	{
-	   // Get the map of our counters
-	   Map<E, Long> actualCounters = getCounters(counters, enumType);
-	   
-	   // We could simply invoke a .equals or .compare but if we iterate through
-	   // the expected map and check each value, we can then output some feedback
-	   // as to what has or has not matched
-	  
-	   E expectedKey    = null;
-	   long expectedVal = 0;
-	   long actualVal   = 0;
-	   for (Map.Entry<E, Long> entry : expected.entrySet()) {
-	      expectedKey = entry.getKey();
-	      expectedVal = entry.getValue();
-	      actualVal   = actualCounters.get(expectedKey);
-	      
-	      LOGGER.debug("expectedKey = {}, expectedVal = {}, actualVal = {}",
-	            expectedKey, expectedVal, actualVal);
-	      assertEquals("Expected counter value of " + expectedVal + " for " +
-	            expectedKey.toString() + ":", expectedVal, actualVal);
-	      
-	      // Reset the actualVal
-	      actualVal = 0;
-	   }
 	}
 	
    private MapDriver<LongWritable, Text, Text, TaggedTextWithCountWritableComparable>
@@ -228,8 +185,7 @@ public class DdiffMapperReducerTest extends BaseTest{
       setUpMapReducer(source);
       
       // Set up the input data
-      InputRecord inputRecord = DdiffTestUtils.createInputRecords(1, true).get(
-            0);
+      InputRecord inputRecord = DdiffTestUtils.createInputRecords(1, true).get(0);
       List<Pair<LongWritable, Text>> inputList = new ArrayList<Pair<LongWritable, Text>>();
 
       // Generate n number of identical records for input
@@ -282,8 +238,8 @@ public class DdiffMapperReducerTest extends BaseTest{
             expectedReduceCounts.get(DdiffReduceCounter.INVALID_SOURCE));
 
       Counters counters = mapReduceDriver.getCounters();
-      validateCounters(counters, reduceExpectedCounts, DdiffReduceCounter.class);
-      validateCounters(counters, mapExpectedCounts, DdiffMapperCounter.class);
+      DdiffTestUtils.validateCounters(counters, reduceExpectedCounts, DdiffReduceCounter.class);
+      DdiffTestUtils.validateCounters(counters, mapExpectedCounts, DdiffMapperCounter.class);
    }
    
 	// ------------------------------------------------------------------------
@@ -309,7 +265,7 @@ public class DdiffMapperReducerTest extends BaseTest{
 		expectedCounts.put(DdiffMapperCounter.TEST_COUNT, 0L);
 		
 		Counters counters = mapDriverRef.getCounters();
-		validateCounters(counters, expectedCounts, DdiffMapperCounter.class);
+		DdiffTestUtils.validateCounters(counters, expectedCounts, DdiffMapperCounter.class);
 	}
 
    @Test
@@ -325,7 +281,7 @@ public class DdiffMapperReducerTest extends BaseTest{
       expectedCounts.put(DdiffMapperCounter.TEST_COUNT, (long) numRows);
       
       Counters counters = mapDriverTest.getCounters();
-      validateCounters(counters, expectedCounts, DdiffMapperCounter.class);      
+      DdiffTestUtils.validateCounters(counters, expectedCounts, DdiffMapperCounter.class);      
    }
    
    @Test
@@ -372,7 +328,7 @@ public class DdiffMapperReducerTest extends BaseTest{
       expectedCounts.put(DdiffReduceCounter.INVALID_SOURCE, 0L);
       
       Counters counters = reduceDriver.getCounters();
-      validateCounters(counters, expectedCounts, DdiffReduceCounter.class);  
+      DdiffTestUtils.validateCounters(counters, expectedCounts, DdiffReduceCounter.class);  
    }
    
    @Test
@@ -420,7 +376,7 @@ public class DdiffMapperReducerTest extends BaseTest{
       expectedCounts.put(DdiffReduceCounter.INVALID_SOURCE, 0L);
       
       Counters counters = reduceDriver.getCounters();
-      validateCounters(counters, expectedCounts, DdiffReduceCounter.class);
+      DdiffTestUtils.validateCounters(counters, expectedCounts, DdiffReduceCounter.class);
       
    }
    
@@ -469,7 +425,7 @@ public class DdiffMapperReducerTest extends BaseTest{
       expectedCounts.put(DdiffReduceCounter.INVALID_SOURCE, 0L);
       
       Counters counters = reduceDriver.getCounters();
-      validateCounters(counters, expectedCounts, DdiffReduceCounter.class);
+      DdiffTestUtils.validateCounters(counters, expectedCounts, DdiffReduceCounter.class);
    }
    
    /**
@@ -523,7 +479,7 @@ public class DdiffMapperReducerTest extends BaseTest{
       expectedCounts.put(DdiffReduceCounter.INVALID_SOURCE, 0L);
       
       Counters counters = reduceDriver.getCounters();
-      validateCounters(counters, expectedCounts, DdiffReduceCounter.class);
+      DdiffTestUtils.validateCounters(counters, expectedCounts, DdiffReduceCounter.class);
    }
    
    /**
@@ -577,7 +533,7 @@ public class DdiffMapperReducerTest extends BaseTest{
       expectedCounts.put(DdiffReduceCounter.INVALID_SOURCE, 0L);
       
       Counters counters = reduceDriver.getCounters();
-      validateCounters(counters, expectedCounts, DdiffReduceCounter.class);
+      DdiffTestUtils.validateCounters(counters, expectedCounts, DdiffReduceCounter.class);
    }
    
    /**
@@ -634,7 +590,7 @@ public class DdiffMapperReducerTest extends BaseTest{
       expectedCounts.put(DdiffReduceCounter.INVALID_SOURCE, 3L);
       
       Counters counters = reduceDriver.getCounters();
-      validateCounters(counters, expectedCounts, DdiffReduceCounter.class);
+      DdiffTestUtils.validateCounters(counters, expectedCounts, DdiffReduceCounter.class);
    }
    
    @Test

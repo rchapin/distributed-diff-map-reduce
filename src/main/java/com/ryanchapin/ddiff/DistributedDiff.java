@@ -227,17 +227,14 @@ public class DistributedDiff implements Tool {
 		      job, new Path(testInputPath),
 		      TextInputFormat.class, DdiffMapperTestInput.class);
 		
-		job.setCombinerClass(DdiffReducer.class);
+		job.setCombinerClass(DdiffCombiner.class);
 		job.setReducerClass(DdiffReducer.class);
-		// TODO: set-up tests to answer that sof question:
-		// job.setPartitionerClass(TaggedKeyPartitioner.class);
-		// job.setGroupingComparatorClass(TaggedKeyGroupingComparator.class);
-		
+
 		// The only output will be the count of the records that are missing in
 		// the reference data, or the count of the additional records in the test
 		// data.
 		job.setOutputKeyClass(Text.class);
-		job.setOutputValueClass(IntWritable.class);
+		job.setOutputValueClass(TaggedTextWithCountWritableComparable.class);
 		
 		FileOutputFormat.setOutputPath(job, outPath);
 		

@@ -44,6 +44,7 @@ public class DdiffMapper extends Mapper<LongWritable, Text, Text, TaggedTextWith
 
 	public DdiffMapper() {
 		super();
+		hashGenerator = new HashGenerator();
 	}
 	
 	// ------------------------------------------------------------------------
