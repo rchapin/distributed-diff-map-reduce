@@ -26,11 +26,10 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import util.HashGenerator;
-
 import com.google.common.collect.ImmutableList;
 import com.ryanchapin.ddiff.DdiffMapper.DdiffMapperCounter;
 import com.ryanchapin.ddiff.DdiffReducer.DdiffReduceCounter;
+import com.ryanchapin.ddiff.util.HashGenerator;
 
 /**
  * Test cases for the MapReduce classes.
@@ -47,90 +46,90 @@ public class DdiffMapperReducerTest extends BaseTest{
 
    private static final Logger LOGGER = LoggerFactory.getLogger(DdiffMapperReducerTest.class);
    
-	@Mock
-	private HashGenerator mockHashGenerator;
-	
-	private MapDriver<LongWritable,
+   @Mock
+   private HashGenerator mockHashGenerator;
+   
+   private MapDriver<LongWritable,
                      Text, Text,
                      TaggedTextWithCountWritableComparable> mapDriverRef;
 
-	private MapDriver<LongWritable,
+   private MapDriver<LongWritable,
                      Text, Text,
                      TaggedTextWithCountWritableComparable> mapDriverTest;
-	
-	private ReduceDriver<Text,
-	                     TaggedTextWithCountWritableComparable,
-	                     Text,
-	                     IntWritable> reduceDriver;
-	
-	private MapReduceDriver<LongWritable,
-	                        Text, Text,
-	                        TaggedTextWithCountWritableComparable,
-	                        Text, IntWritable> mapReduceDriver;
    
-	// ------------------------------------------------------------------------
+   private ReduceDriver<Text,
+                        TaggedTextWithCountWritableComparable,
+                        Text,
+                        IntWritable> reduceDriver;
+   
+   private MapReduceDriver<LongWritable,
+                           Text, Text,
+                           TaggedTextWithCountWritableComparable,
+                           Text, IntWritable> mapReduceDriver;
+   
+   // ------------------------------------------------------------------------
    // Utility Methods:
    //
-	
-	@Before
-	public void setUp() throws Exception {
-	   mockHashGenerator = Mockito.mock(HashGenerator.class);
-	}
-	
-	@After
-	public void tearDown() {
-	   mapDriverRef      = null;
-	   mapDriverTest     = null;
-		reduceDriver      = null;
-		mockHashGenerator = null;
-	}
-	
+   
+   @Before
+   public void setUp() throws Exception {
+      mockHashGenerator = Mockito.mock(HashGenerator.class);
+   }
+   
+   @After
+   public void tearDown() {
+      mapDriverRef      = null;
+      mapDriverTest     = null;
+      reduceDriver      = null;
+      mockHashGenerator = null;
+   }
+   
    private MapDriver<LongWritable, Text, Text, TaggedTextWithCountWritableComparable>
       setupMapper(Source source, int numRows)
    {
-	   if (null == source) {
-	      String errMsg = "source arg to 'setupMapper' was null";
-	      throw new IllegalArgumentException(errMsg);
-	   }
-	   
-	   DdiffMapper ddiffMapper = null;
+      if (null == source) {
+         String errMsg = "source arg to 'setupMapper' was null";
+         throw new IllegalArgumentException(errMsg);
+      }
+      
+      DdiffMapper ddiffMapper = null;
 
       // Create our sample input data
       List<InputRecord> inputRecords = DdiffTestUtils.createInputRecords(numRows, false);
       List<MapOutputRecord> outputRecords = null;
       
-	   switch (source) {
-	      case REFERENCE:
-	         ddiffMapper = new DdiffMapperReferenceInput();
-	         // Create our expected output data
-	         outputRecords = DdiffTestUtils.createMapOutputRecords(inputRecords, Source.REFERENCE, 1);
-	         break;
-	   
-	      case TEST:
-	         ddiffMapper = new DdiffMapperTestInput();
-	         // Create our expected output data
-	         outputRecords = DdiffTestUtils.createMapOutputRecords(inputRecords, Source.TEST, 1);
-	         break;
-	         
-	      default:
-	         break;
-	   }
-	   
-		ddiffMapper.setHashGenerator(mockHashGenerator);
-		
-		MapDriver<LongWritable, Text, Text, TaggedTextWithCountWritableComparable> mapDriver =
-		      new MapDriver<LongWritable,
-		                    Text, Text,
-		                    TaggedTextWithCountWritableComparable>();
-		
-		mapDriver.setMapper(ddiffMapper);
-		// mapDriver.setKeyComparator(new TaggedKeyGroupingComparator());
-		Configuration conf = mapDriver.getConfiguration();
-		conf.set(DistributedDiff.HASH_ALGO_KEY, DdiffMapper.HASH_ALGO_DEFAULT);
+      switch (source) {
+         case REFERENCE:
+            ddiffMapper = new DdiffMapperReferenceInput();
+            // Create our expected output data
+            outputRecords = DdiffTestUtils.createMapOutputRecords(inputRecords, Source.REFERENCE, 1);
+            break;
+      
+         case TEST:
+            ddiffMapper = new DdiffMapperTestInput();
+            // Create our expected output data
+            outputRecords = DdiffTestUtils.createMapOutputRecords(inputRecords, Source.TEST, 1);
+            break;
+            
+         default:
+            break;
+      }
+      
+      ddiffMapper.setHashGenerator(mockHashGenerator);
+      
+      MapDriver<LongWritable, Text, Text, TaggedTextWithCountWritableComparable> mapDriver =
+            new MapDriver<LongWritable,
+                          Text, Text,
+                          TaggedTextWithCountWritableComparable>();
+      
+      mapDriver.setMapper(ddiffMapper);
+      // mapDriver.setKeyComparator(new TaggedKeyGroupingComparator());
+      Configuration conf = mapDriver.getConfiguration();
+      conf.set(DistributedDiff.HASH_ALGO_KEY, DdiffMapper.HASH_ALGO_DEFAULT);
 
-		// Based on the contents of inputRecords and outputRecords set up
-		// all of the mock expectations for the hash generator and add the
-		// input and expected output to the mapDriver.
+      // Based on the contents of inputRecords and outputRecords set up
+      // all of the mock expectations for the hash generator and add the
+      // input and expected output to the mapDriver.
       for (int i = 0; i < numRows; i++) {
          Mockito.when(mockHashGenerator
                .createHash(inputRecords.get(i).getRecord(), DdiffMapper.HASH_ALGO_DEFAULT))
@@ -141,8 +140,8 @@ public class DdiffMapperReducerTest extends BaseTest{
                outputRecords.get(i).getValue());
       }
       return mapDriver;
-	}
-	
+   }
+   
    private void setUpReducer() {
       reduceDriver = new ReduceDriver<Text,
                                     TaggedTextWithCountWritableComparable,
@@ -242,31 +241,31 @@ public class DdiffMapperReducerTest extends BaseTest{
       DdiffTestUtils.validateCounters(counters, mapExpectedCounts, DdiffMapperCounter.class);
    }
    
-	// ------------------------------------------------------------------------
-	// Test Methods:
-	//	
-	
-	@Test
-	public void shouldGenerateCorrectKeyValuePairsforReferenceMapper() throws IOException {
-		int numRows = 5;
-		mapDriverRef = setupMapper(Source.REFERENCE, numRows);
-	   mapDriverRef.run();
-		
-		List<Pair<Text, TaggedTextWithCountWritableComparable>> output =
-		      mapDriverRef.getExpectedOutputs();
-		for (Pair<Text, TaggedTextWithCountWritableComparable> pair : output) {
-		   LOGGER.debug(pair.getFirst().toString());
-		}
-		
-		// Set up our expected counts and validate against the actual counts
-		Map<DdiffMapperCounter, Long> expectedCounts =
-		      new HashMap<DdiffMapperCounter, Long>();
-		expectedCounts.put(DdiffMapperCounter.REFERENCE_COUNT, (long) numRows );
-		expectedCounts.put(DdiffMapperCounter.TEST_COUNT, 0L);
-		
-		Counters counters = mapDriverRef.getCounters();
-		DdiffTestUtils.validateCounters(counters, expectedCounts, DdiffMapperCounter.class);
-	}
+   // ------------------------------------------------------------------------
+   // Test Methods:
+   //   
+   
+   @Test
+   public void shouldGenerateCorrectKeyValuePairsforReferenceMapper() throws IOException {
+      int numRows = 5;
+      mapDriverRef = setupMapper(Source.REFERENCE, numRows);
+      mapDriverRef.run();
+      
+      List<Pair<Text, TaggedTextWithCountWritableComparable>> output =
+            mapDriverRef.getExpectedOutputs();
+      for (Pair<Text, TaggedTextWithCountWritableComparable> pair : output) {
+         LOGGER.debug(pair.getFirst().toString());
+      }
+      
+      // Set up our expected counts and validate against the actual counts
+      Map<DdiffMapperCounter, Long> expectedCounts =
+            new HashMap<DdiffMapperCounter, Long>();
+      expectedCounts.put(DdiffMapperCounter.REFERENCE_COUNT, (long) numRows );
+      expectedCounts.put(DdiffMapperCounter.TEST_COUNT, 0L);
+      
+      Counters counters = mapDriverRef.getCounters();
+      DdiffTestUtils.validateCounters(counters, expectedCounts, DdiffMapperCounter.class);
+   }
 
    @Test
    public void shouldGenerateCorrectKeyValuePairsforTestMapper() throws IOException {

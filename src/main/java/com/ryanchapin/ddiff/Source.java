@@ -9,6 +9,6 @@ package com.ryanchapin.ddiff;
  *
  */
 public enum Source {
-	REFERENCE,
-	TEST;
+   REFERENCE,
+   TEST;
 }

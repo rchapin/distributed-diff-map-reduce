@@ -18,66 +18,66 @@ public class DdiffReducer extends Reducer<Text, TaggedTextWithCountWritableCompa
    
    private MultipleOutputs<Text, IntWritable> mos;
    
-	@Override
-	public void setup(Context context) {
-		mos = new MultipleOutputs<Text, IntWritable>(context);
-	}
-	
-	@Override
-	protected void reduce(Text key, Iterable<TaggedTextWithCountWritableComparable> values, Context context)
-	      throws IOException, InterruptedException
-	{   
-	   // Separate out the values based on their source
-	   Map<Text, Integer> referenceMap = new HashMap<Text, Integer>();
-	   Map<Text, Integer> testMap      = new HashMap<Text, Integer>();
-	   
-	   Source source = null;
-	   int count = 0;
-	   TaggedTextWithCountWritableComparable value = null;
-	   Iterator<TaggedTextWithCountWritableComparable> valuesItr = values.iterator();
-	   while (valuesItr.hasNext()) {
+   @Override
+   public void setup(Context context) {
+      mos = new MultipleOutputs<Text, IntWritable>(context);
+   }
+   
+   @Override
+   protected void reduce(Text key, Iterable<TaggedTextWithCountWritableComparable> values, Context context)
+         throws IOException, InterruptedException
+   {   
+      // Separate out the values based on their source
+      Map<Text, Integer> referenceMap = new HashMap<Text, Integer>();
+      Map<Text, Integer> testMap      = new HashMap<Text, Integer>();
+      
+      Source source = null;
+      int count = 0;
+      TaggedTextWithCountWritableComparable value = null;
+      Iterator<TaggedTextWithCountWritableComparable> valuesItr = values.iterator();
+      while (valuesItr.hasNext()) {
 
-	      value = valuesItr.next();
+         value = valuesItr.next();
          count = value.getCount().get();
          
          // Ensure that we don't have some invalid Text value for our
          // Source enum.
-	      try {
-	         source = Source.valueOf(value.getSource().toString().toUpperCase());
-	      } catch (IllegalArgumentException e) {
-	         String errMsg = "Invalid source value found in reduce record";
-	         LOGGER.error(errMsg + ", " + e.toString());
-	         long invalidCount = (long) ((count < 1) ? 1 : count);
-	         context.getCounter(DdiffReduceCounter.INVALID_SOURCE).increment(invalidCount);
-	         continue;
-	      }
-	      
-	      switch (source) {
-   	      case REFERENCE:
-   	         context.getCounter(DdiffReduceCounter.REFERENCE_SOURCE).increment(count);
-   	         upsertMapEntry(value, referenceMap);
-   	         break;     
-   	      case TEST:
-   	         context.getCounter(DdiffReduceCounter.TEST_SOURCE).increment(count);
-   	         upsertMapEntry(value, testMap);
-   	         break;
-   	      default:
-	      }
-	   }
-	   
-	   // Now make sure that there is a match in the test set for every record
-	   // in the reference set.  We will continue to decrement or remove
-	   // items in the test set that we find in the reference set. 
-	   Text refKey       = null;
-	   Integer refCount  = null;
-	   Integer testCount = null;
-	   int diff          = 0;
-	   
-	   Iterator<Map.Entry<Text, Integer>> refMapItr = referenceMap.entrySet().iterator();
-	   while (refMapItr.hasNext()) {
-	      Map.Entry<Text, Integer> entry = refMapItr.next();
-	      
-	      // Is there a record in the testMap for this key
+         try {
+            source = Source.valueOf(value.getSource().toString().toUpperCase());
+         } catch (IllegalArgumentException e) {
+            String errMsg = "Invalid source value found in reduce record";
+            LOGGER.error(errMsg + ", " + e.toString());
+            long invalidCount = (long) ((count < 1) ? 1 : count);
+            context.getCounter(DdiffReduceCounter.INVALID_SOURCE).increment(invalidCount);
+            continue;
+         }
+         
+         switch (source) {
+            case REFERENCE:
+               context.getCounter(DdiffReduceCounter.REFERENCE_SOURCE).increment(count);
+               upsertMapEntry(value, referenceMap);
+               break;     
+            case TEST:
+               context.getCounter(DdiffReduceCounter.TEST_SOURCE).increment(count);
+               upsertMapEntry(value, testMap);
+               break;
+            default:
+         }
+      }
+      
+      // Now make sure that there is a match in the test set for every record
+      // in the reference set.  We will continue to decrement or remove
+      // items in the test set that we find in the reference set. 
+      Text refKey       = null;
+      Integer refCount  = null;
+      Integer testCount = null;
+      int diff          = 0;
+      
+      Iterator<Map.Entry<Text, Integer>> refMapItr = referenceMap.entrySet().iterator();
+      while (refMapItr.hasNext()) {
+         Map.Entry<Text, Integer> entry = refMapItr.next();
+         
+         // Is there a record in the testMap for this key
          refKey = entry.getKey();
          refCount  = referenceMap.get(refKey);
          
@@ -106,19 +106,19 @@ public class DdiffReducer extends Reducer<Text, TaggedTextWithCountWritableCompa
             mos.write(DistributedDiff.MISSING_OUTPUT, refKey, new IntWritable(refCount));
             context.getCounter(DdiffReduceCounter.MISSING).increment(refCount);
          }  
-	   }
-	   
-	   // Now write out the remaining items from the testMap to the extra output
-	   for (Map.Entry<Text, Integer> entry : testMap.entrySet()) {
-	      mos.write(DistributedDiff.EXTRA_OUTPUT, entry.getKey(), new IntWritable(entry.getValue()));
-	      context.getCounter(DdiffReduceCounter.EXTRA).increment((long) entry.getValue());
-	   }
-	}
-	
-	private void upsertMapEntry(
-	      TaggedTextWithCountWritableComparable value, Map<Text, Integer> map)
-	{
-	   Text record   = value.getRecord();
+      }
+      
+      // Now write out the remaining items from the testMap to the extra output
+      for (Map.Entry<Text, Integer> entry : testMap.entrySet()) {
+         mos.write(DistributedDiff.EXTRA_OUTPUT, entry.getKey(), new IntWritable(entry.getValue()));
+         context.getCounter(DdiffReduceCounter.EXTRA).increment((long) entry.getValue());
+      }
+   }
+   
+   private void upsertMapEntry(
+         TaggedTextWithCountWritableComparable value, Map<Text, Integer> map)
+   {
+      Text record   = value.getRecord();
       Integer count = map.get(record);
       if (null == count) {
          // Insert a new record with the value from the
@@ -129,18 +129,18 @@ public class DdiffReducer extends Reducer<Text, TaggedTextWithCountWritableCompa
          // Increment the count value by the number of records in the Writable
         map.put(record, (count + value.getCount().get()));
       }
-	}
-	
-	@Override
-	public void cleanup(Context context) throws IOException, InterruptedException {
-		mos.close();
-	}
-	
-	public static enum DdiffReduceCounter {
-	   EXTRA,
-	   INVALID_SOURCE,
-	   MISSING,
-	   REFERENCE_SOURCE,
-	   TEST_SOURCE;
-	}
+   }
+   
+   @Override
+   public void cleanup(Context context) throws IOException, InterruptedException {
+      mos.close();
+   }
+   
+   public static enum DdiffReduceCounter {
+      EXTRA,
+      INVALID_SOURCE,
+      MISSING,
+      REFERENCE_SOURCE,
+      TEST_SOURCE;
+   }
 }
