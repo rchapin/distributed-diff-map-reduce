@@ -1,6 +1,7 @@
 package com.ryanchapin.ddiff;
 
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
@@ -10,7 +11,8 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.ryanchapin.ddiff.util.HashGenerator;
+import com.ryanchapin.util.HashGenerator;
+import com.ryanchapin.util.HashGenerator.HashAlgorithm;
 
 /**
  * Creates a has of the record (the key) and generates a
@@ -24,7 +26,10 @@ public class DdiffMapper extends Mapper<LongWritable, Text, Text, TaggedTextWith
    
    protected static final Logger LOGGER = LoggerFactory.getLogger(DdiffMapper.class);
    
-   public static final String HASH_ALGO_DEFAULT = "SHA-256";
+   protected static final HashAlgorithm HASH_ALGO_DEFAULT = HashAlgorithm.SHA256SUM;
+   
+   protected static final String ENCODING_DEFAULT = "Unicode";
+   
    protected static final IntWritable ONE = new IntWritable(1);
    protected String hashAlgorithm;
    protected Source source;
@@ -71,8 +76,17 @@ public class DdiffMapper extends Mapper<LongWritable, Text, Text, TaggedTextWith
     * @throws IOException 
     */
    @Override
-   public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-      String hashKey = hashGenerator.createHash(value.toString(), HASH_ALGO_DEFAULT);
+   public void map(LongWritable key, Text value, Context context)
+         throws IOException, InterruptedException
+   {
+      String hashKey = null;
+      try {
+         hashKey = HashGenerator.createHash(value.toString(), ENCODING_DEFAULT, HASH_ALGO_DEFAULT);
+      } catch (IllegalArgumentException | NoSuchAlgorithmException e) {
+         LOGGER.error("Exception thrown when attempting to hash the input key, e = {}",
+               e.getCause().getMessage());
+         e.printStackTrace();
+      }
       Text outKey    = new Text(hashKey);
       
       TaggedTextWithCountWritableComparable outVal =

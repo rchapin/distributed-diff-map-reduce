@@ -21,6 +21,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.slf4j.Logger;
@@ -29,7 +30,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableList;
 import com.ryanchapin.ddiff.DdiffMapper.DdiffMapperCounter;
 import com.ryanchapin.ddiff.DdiffReducer.DdiffReduceCounter;
-import com.ryanchapin.ddiff.util.HashGenerator;
+import com.ryanchapin.util.HashGenerator;
 
 /**
  * Test cases for the MapReduce classes.
@@ -41,13 +42,15 @@ import com.ryanchapin.ddiff.util.HashGenerator;
  * @since  2015-01-30
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest(DdiffReducer.class)
+@PrepareForTest({
+   DdiffReducer.class, HashGenerator.class
+})
 public class DdiffMapperReducerTest extends BaseTest{
 
    private static final Logger LOGGER = LoggerFactory.getLogger(DdiffMapperReducerTest.class);
    
-   @Mock
-   private HashGenerator mockHashGenerator;
+//   @Mock
+//   private HashGenerator mockHashGenerator;
    
    private MapDriver<LongWritable,
                      Text, Text,
@@ -74,6 +77,9 @@ public class DdiffMapperReducerTest extends BaseTest{
    @Before
    public void setUp() throws Exception {
       mockHashGenerator = Mockito.mock(HashGenerator.class);
+      
+      PowerMockito.mockStatic(HashGenerator.class);
+//      Mockito.when(HashGenerator.createHash(input, encoding, hashAlgorithm))
    }
    
    @After
@@ -125,7 +131,7 @@ public class DdiffMapperReducerTest extends BaseTest{
       mapDriver.setMapper(ddiffMapper);
       // mapDriver.setKeyComparator(new TaggedKeyGroupingComparator());
       Configuration conf = mapDriver.getConfiguration();
-      conf.set(DistributedDiff.HASH_ALGO_KEY, DdiffMapper.HASH_ALGO_DEFAULT);
+      conf.set(DistributedDiff.HASH_ALGO_KEY, DdiffMapper.HASH_ALGO_DEFAULT.toString());
 
       // Based on the contents of inputRecords and outputRecords set up
       // all of the mock expectations for the hash generator and add the
