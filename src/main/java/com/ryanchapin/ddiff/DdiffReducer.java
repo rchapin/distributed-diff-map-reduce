@@ -12,6 +12,16 @@ import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Keys are aggregated by the hash of the input records across both
+ * {@link Source#REFERENCE} and {@link Source#TEST} inputs.
+ * <p>
+ * The records are then bucketed by their source and comparisons made to
+ * determine if there are any records missing in the {@link Source#TEST}
+ * and if there are any additional records in the {@link Source#TEST}.
+ * 
+ * @since  1.0.0
+ */
 public class DdiffReducer extends Reducer<Text, TaggedTextWithCountWritableComparable, Text, IntWritable> {
 
    private static final Logger LOGGER = LoggerFactory.getLogger(DdiffReducer.class);
@@ -115,6 +125,17 @@ public class DdiffReducer extends Reducer<Text, TaggedTextWithCountWritableCompa
       }
    }
    
+   /**
+    * Encapsulates the adding or updating of the count for a given record in
+    * the map parameter
+    * 
+    * @param value
+    *        {@link TaggedTextWithCountWritableComparable} instance which
+    *        is to be either added the count updated in the map.
+    * @param map
+    *        Map in which the elements therein should have their values updated
+    *        or into which new elements should be added.
+    */
    private void upsertMapEntry(
          TaggedTextWithCountWritableComparable value, Map<Text, Integer> map)
    {

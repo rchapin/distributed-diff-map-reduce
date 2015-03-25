@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
@@ -26,58 +27,200 @@ import org.apache.hadoop.util.Tool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ryanchapin.util.HashGenerator;
 import com.ryanchapin.util.HashGenerator.HashAlgorithm;
 
 /**
- * Utility class for executing a distributed diff against two large data sets.
+ * DistributedDiff is a <b>MRv2</b> utility for comparing large amounts of text
+ * data.  As Java, and the [HashGenerator]() library that is used, supports
+ * Unicode, DistributedDiff supports a wide range of source data character
+ * encodings.  This was developed to aid in the testing of systems where a
+ * large volume of records can be generated and where records from a reference
+ * set need to be diffed against the output of the system under test.
+ * <p>
+ * This utility allows the user to compare two different sets of output and
+ * determine if there is a matching line for every record in set A
+ * (the reference set) in set B (the test output set). It will also determine
+ * if there are any additional records in set B (the test output set) that are
+ * not in set A (the reference set).
+ * <p>
+ * The program will output two sets of records, those that were missing in the
+ * test output set, and those additional records in the test output set that
+ * should not have been generated.
+ * <p>
+ * It is assumed that each logical record will reside on a single line in both
+ * sets of input files.
  * 
- * {@link Main} will instantiate an instance of this class and pass it the
- * String[] args.
- * 
- * @author  Ryan Chapin
- * @since   2015-01-15
+ * @since   1.0.0
  *
  */
 public class DistributedDiff implements Tool {
 
    private static Logger LOGGER = LoggerFactory.getLogger(DistributedDiff.class);
 
+   private static final String APP_NAME = "ddiff";
+   private static final String REQUIRED = "[required]";
+   private static final String OPTIONAL = "[optional]";
+   
+   /**
+    * String to be appended to the output file indicating the records that are
+    * missing in the test set, but present in the reference set.
+    */
    public static final String MISSING_OUTPUT = "missing";
+   
+   /**
+    * String to be appended to the output file indicating the records that are
+    * present in the test set, but are not present in the reference set.
+    */
    public static final String EXTRA_OUTPUT   = "extra";
    
+   /**
+    * Command line interface short option flag for the reference data input
+    * path
+    */
    public static final String OPTION_KEY_REF_INPUT_PATH       = "r";
+   
+   /**
+    * Command line interface long option flag for the reference data input
+    * path
+    */
    public static final String OPTION_KEY_REF_INPUT_PATH_LONG  = "reference-data-input-path";
    
+   /**
+    * Command line interface short option flag for the test data input path
+    */
    public static final String OPTION_KEY_TEST_INPUT_PATH      = "t";
+   
+   /**
+    * Command line interface long option flag for the test data input path
+    */
    public static final String OPTION_KEY_TEST_INPUT_PATH_LONG = "test-data-input-path";
    
+   /**
+    * Command line interface short option flag for the output path
+    */
    public static final String OPTION_KEY_OUTPUT_PATH      = "o";
+   
+   /**
+    * Command line interface long option flag for the output path
+    */
    public static final String OPTION_KEY_OUTPUT_PATH_LONG = "output-path";
 
+   /**
+    * Command line interface short option flag for the hash algorithm to be
+    * used to hash records.
+    */
    public static final String OPTION_KEY_HASH_ALGO      = "a";
+   
+   /**
+    * Command line interface long option flag for the hash algorithm to be
+    * used to hash records.
+    */
    public static final String OPTION_KEY_HASH_ALGO_LONG = "hash-algorithm";
+   
+   /**
+    * Default hash algorithm to be used.
+    */
    public static final String OPTION_HASH_ALGO_DEFAULT  = "SHA1SUM";
    
+   /**
+    * Command line interface short option flag for the String encoding to be
+    * used by the {@link HashGenerator} class when hashing String input.
+    */
    public static final String OPTION_KEY_HASH_STRING_ENCODING =
          "e";
+   
+   /**
+    * Command line interface long option flag for the String encoding to be
+    * used by the {@link HashGenerator} class when hashing String input.
+    */
    public static final String OPTION_KEY_HASH_STRING_ENCODING_LONG =
          "hash-string-encoding";
+   
+   /**
+    * Default String encoding to be used by the {@link HashGenerator} class
+    * when hashing String input.
+    */
    public static final String OPTION_HASH_STRING_ENCODING_DEFAULT =
          "UTF-8";
    
+   /**
+    * Command line interface short option flag to provide a user-defined job
+    * name.
+    */
    public static final String OPTION_KEY_JOB_NAME      = "j";
+
+   /**
+    * Command line interface long option flag to provide a user-defined job
+    * name.
+    */
    public static final String OPTION_KEY_JOB_NAME_LONG = "job-name";
+   
+   /**
+    * Default job name.
+    */
    public static final String OPTION_JOB_NAME_DEFAULT  = "ddiff";
    
+   /**
+    * Command line interface long option flag to print usage/help.
+    */
+   public static final String OPTION_KEY_HELP_LONG = "help";
+   
+   /**
+    * Command line interface short option flag to print usage/help.
+    */
+   public static final String OPTION_KEY_HELP = "h";
+   
+   /**
+    * @link Options configured for this program
+    */
+   private Options options;
+   
+   /**
+    * Key to be used when passing a hash algorithm to the Mappers via the
+    * {@link org.apache.hadoop.conf.Configuration} instance.
+    */
    public static final String CONF_HASH_ALGO_KEY = "hash.algorithm";
+   
+   /**
+    * Key to be used when passing a String encoding for the {@link HashGenerator}
+    * to the Mappers via the {@link org.apache.hadoop.conf.Configuration} instance.
+    */
    public static final String CONF_ENCODING_KEY  = "hash.string.encoding";
 
+   /**
+    * String array passed in from the {@link com.ryanchapin.ddiff.Main} class.
+    */
    private String[] args;
+   
+   /**
+    * Path to the reference input data
+    */
    private String referenceInputPath;
+   
+   /**
+    * Path to the test input data.
+    */
    private String testInputPath;
+   
+   /**
+    * Path to which the output should be written.
+    */
    private String outputPath;
+
+   /**
+    * Hash algorithm to be used to hash record keys.
+    */
    private HashAlgorithm hashAlgorithm;
+   
+   /**
+    * String encoding to be used for the {@link HashGenerator}
+    */
    private String stringEncoding;
+   
+   /**
+    * String to be used for the MapReduce job-id.
+    */
    private String jobId;
 
    private Job job;
@@ -200,53 +343,61 @@ public class DistributedDiff implements Tool {
       // Build our command line options
       @SuppressWarnings("static-access")
       Option refDataPath = OptionBuilder.withLongOpt(OPTION_KEY_REF_INPUT_PATH_LONG)
-            .withDescription("Input path on HDFS for the reference data")
+            .withDescription(REQUIRED + " Input path on HDFS for the reference data")
             .isRequired(true)
             .hasArgs(1)
             .create(OPTION_KEY_REF_INPUT_PATH);
 
       @SuppressWarnings("static-access")
       Option testDataPath = OptionBuilder.withLongOpt(OPTION_KEY_TEST_INPUT_PATH_LONG)
-            .withDescription("Input path on HDFS for the test data")
+            .withDescription(REQUIRED + " Input path on HDFS for the test data")
             .isRequired(true)
             .hasArgs(1)
             .create(OPTION_KEY_TEST_INPUT_PATH);
       
       @SuppressWarnings("static-access")
       Option outPath = OptionBuilder.withLongOpt(OPTION_KEY_OUTPUT_PATH_LONG)
-            .withDescription("Output path on HDFS to where results should be written")
+            .withDescription(REQUIRED + " Output path on HDFS to where results should be written")
             .isRequired(true)
             .hasArgs(1)
             .create(OPTION_KEY_OUTPUT_PATH);
       
       @SuppressWarnings("static-access")
       Option hashAlgo = OptionBuilder.withLongOpt(OPTION_KEY_HASH_ALGO_LONG)
-            .withDescription("Algorithm to be used to hash input records")
+            .withDescription(OPTIONAL + " Algorithm to be used to hash input records")
             .isRequired(false)
             .hasArgs(1)
             .create(OPTION_KEY_HASH_ALGO);
       
       @SuppressWarnings("static-access")
       Option encoding = OptionBuilder.withLongOpt(OPTION_KEY_HASH_STRING_ENCODING_LONG)
-            .withDescription("String encoding to be used when hashing input records")
+            .withDescription(OPTIONAL + " String encoding to be used when hashing input records")
             .isRequired(false)
             .hasArgs(1)
             .create(OPTION_KEY_HASH_STRING_ENCODING);
       
       @SuppressWarnings("static-access")
       Option jobName = OptionBuilder.withLongOpt(OPTION_KEY_JOB_NAME_LONG)
-            .withDescription("User defined name for this M/R job")
+            .withDescription(OPTIONAL + " User defined name for this M/R job")
             .isRequired(false)
             .hasArgs(1)
             .create(OPTION_KEY_JOB_NAME);
       
-      Options options = new Options();
+      @SuppressWarnings("static-access")
+      Option help = OptionBuilder.withLongOpt(OPTION_KEY_HELP_LONG)
+            .withDescription("Print this message")
+            .isRequired(false)
+            .hasArg(false)
+            .create(OPTION_KEY_HELP);
+      
+      options = new Options();
       options.addOption(refDataPath);
       options.addOption(testDataPath);
       options.addOption(outPath);
       options.addOption(hashAlgo);
       options.addOption(encoding);
       options.addOption(jobName);
+      options.addOption(help);
       
       // Create the parser and parse the String[] args
       CommandLineParser parser = new BasicParser();
@@ -254,6 +405,12 @@ public class DistributedDiff implements Tool {
       
       try {
          commandLine = parser.parse(options, args);
+         
+         if (commandLine.hasOption(OPTION_KEY_HELP) ||
+             commandLine.hasOption(OPTION_KEY_HELP_LONG))
+         {
+            printUsage(true);
+         }
          
          referenceInputPath =
                commandLine.getOptionValue(OPTION_KEY_REF_INPUT_PATH);
@@ -300,9 +457,10 @@ public class DistributedDiff implements Tool {
       } catch (ParseException e) {
          String errMsg = "Unable to parse command line properties, e = " + e.toString();
          LOGGER.error(errMsg);
+         printUsage(false);
          throw new IllegalArgumentException(errMsg);
       }
-     
+
       validateArg(referenceInputPath, OPTION_KEY_REF_INPUT_PATH_LONG);
       validateArg(testInputPath,      OPTION_KEY_TEST_INPUT_PATH_LONG);
       validateArg(outputPath,         OPTION_KEY_OUTPUT_PATH_LONG);
@@ -337,6 +495,19 @@ public class DistributedDiff implements Tool {
       }
    }
    
+   private void printUsage(boolean exit) {
+      HelpFormatter helpFormatter = new HelpFormatter();
+      helpFormatter.printHelp(APP_NAME, options);
+      if (exit) {
+         System.exit(0); 
+      } 
+   }
+   
+   /**
+    * Configures the M/R job to be submitted.
+    * 
+    * @throws Exception
+    */
    private void setupJob() throws Exception {
       Configuration conf = getConf();
       

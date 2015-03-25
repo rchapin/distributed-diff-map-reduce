@@ -6,8 +6,7 @@ import org.apache.hadoop.util.ToolRunner;
 /**
  * Entry point for the DistributedDiff program.
  * 
- * @author  Ryan Chapin
- * @since   2015-01-15
+ * @version 1.0.0
  */
 public class Main {
 

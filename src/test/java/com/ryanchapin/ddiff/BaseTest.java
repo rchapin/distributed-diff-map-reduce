@@ -34,6 +34,19 @@ public class BaseTest {
       "-" + DistributedDiff.OPTION_KEY_HASH_ALGO, HASH_ALGO_VALID,
       "-" + DistributedDiff.OPTION_KEY_HASH_STRING_ENCODING, STRING_ENCODING_VALID};
    
+   /** -- Help Args -------------------------------------------------------- */
+   public static final String[] ARGS_HELP_SHORT_OPTS = {
+      "-" + DistributedDiff.OPTION_KEY_REF_INPUT_PATH, INPUT_PATH_REF_VALID,
+      "-" + DistributedDiff.OPTION_KEY_TEST_INPUT_PATH, INPUT_PATH_TEST_VALID,
+      "-" + DistributedDiff.OPTION_KEY_OUTPUT_PATH, OUTPUT_PATH_VALID,
+      "-" + DistributedDiff.OPTION_KEY_HELP};
+   
+   public static final String[] ARGS_HELP_LONG_OPTS = {
+      "-" + DistributedDiff.OPTION_KEY_REF_INPUT_PATH, INPUT_PATH_REF_VALID,
+      "-" + DistributedDiff.OPTION_KEY_TEST_INPUT_PATH, INPUT_PATH_TEST_VALID,
+      "-" + DistributedDiff.OPTION_KEY_OUTPUT_PATH, OUTPUT_PATH_VALID,
+      "-" + DistributedDiff.OPTION_KEY_HELP_LONG};
+   
    /** -- Reference Path Args ---------------------------------------------- */
    public static final String[] ARGS_REF_INPUT_PATH_MISSING = {
       "-" + DistributedDiff.OPTION_KEY_TEST_INPUT_PATH, INPUT_PATH_TEST_VALID,

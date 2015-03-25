@@ -14,7 +14,9 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.ExpectedSystemExit;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -28,6 +30,9 @@ import org.powermock.modules.junit4.PowerMockRunner;
    Job.class, FileSystem.class, FileOutputFormat.class
 })
 public class DistributedDiffTest extends BaseTest {
+   
+   @Rule
+   public final ExpectedSystemExit exit = ExpectedSystemExit.none();
    
    @Mock
    private Path mockRefInputPath;
@@ -318,6 +323,21 @@ public class DistributedDiffTest extends BaseTest {
       DistributedDiff ddiff = getConfiguredDdiff();
       ddiff.run(ARGS_VALID_WITH_STRING_ENCODING_LONG);
       assertEquals(STRING_ENCODING_VALID, ddiff.getStringEncoding());   
+   }
+   
+   /** -- Help ------------------------------------------------------------- */
+   @Test
+   public void shouldPrintHelpAndExitWithHelpArg() {
+      exit.expectSystemExitWithStatus(0);
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_HELP_SHORT_OPTS);
+   }
+
+   @Test
+   public void shouldPrintHelpAndExitWithHelpArgLong() {
+      exit.expectSystemExitWithStatus(0);
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_HELP_LONG_OPTS);
    }
    
    // ------------------------------------------------------------------------

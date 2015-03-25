@@ -15,19 +15,26 @@ import com.ryanchapin.util.HashGenerator;
 import com.ryanchapin.util.HashGenerator.HashAlgorithm;
 
 /**
- * Creates a has of the record (the key) and generates a
+ * Reads input files, line by line, creates a hash of the records and then
+ * emits keys as the hash of the records, and values as a
  * {@link TaggedTextWithCountWritableComparable} instance for each record.
  * 
- * @author Ryan Chapin
- * @since  2015-01-20
- *
+ * @since  1.0.0
  */
 public class DdiffMapper extends Mapper<LongWritable, Text, Text, TaggedTextWithCountWritableComparable> {
    
    protected static final Logger LOGGER = LoggerFactory.getLogger(DdiffMapper.class);
    
+   /**
+    * Hash algorithm to be used when generating keys for each record with the
+    * {@link HashGenerator} class.
+    */
    public static final HashAlgorithm HASH_ALGO_DEFAULT = HashAlgorithm.SHA256SUM;
    
+   /**
+    * Default String encoding to be passed to
+    * {@link HashGenerator#createHash(String, String, HashAlgorithm)}
+    */
    public static final String ENCODING_DEFAULT = "UTF-8";
    
    protected static final IntWritable ONE = new IntWritable(1);
@@ -63,20 +70,22 @@ public class DdiffMapper extends Mapper<LongWritable, Text, Text, TaggedTextWith
    protected void setup(Context context) throws IOException, InterruptedException {
       super.setup(context);
       
+      // Read our configuration data from the Configuration instance
       Configuration conf = context.getConfiguration();
-      hashAlgorithm = Enum.valueOf(HashAlgorithm.class, conf.get(DistributedDiff.CONF_HASH_ALGO_KEY));
+      hashAlgorithm = Enum.valueOf(HashAlgorithm.class,
+            conf.get(DistributedDiff.CONF_HASH_ALGO_KEY));
       stringEncoding = conf.get(DistributedDiff.CONF_ENCODING_KEY);
 
       LOGGER.info("Values from Configuration instance\n\t{} = {}\n\t{} = {}",
             DistributedDiff.CONF_HASH_ALGO_KEY, hashAlgorithm.toString(),
-            DistributedDiff.CONF_ENCODING_KEY, stringEncoding
-            );
+            DistributedDiff.CONF_ENCODING_KEY, stringEncoding);
    }
    
    /**
     * Takes each line from the source file, hashes the value, and then creates
-    * a composite key of the hash of the value and the source, and a composite
-    * value which is the record and it's count.
+    * a key with that hash and an output value that is a
+    * {@link TaggedTextWithCountWritableComparable} instance which is the
+    * record and it's count.
     * 
     * @throws InterruptedException 
     * @throws IOException 
@@ -84,25 +93,34 @@ public class DdiffMapper extends Mapper<LongWritable, Text, Text, TaggedTextWith
    @Override
    public void map(LongWritable key, Text value, Context context)
          throws IOException, InterruptedException
+         
    {
       String hashKey = null;
       try {
-         hashKey = HashGenerator.createHash(value.toString(), ENCODING_DEFAULT, HASH_ALGO_DEFAULT);
+         hashKey = HashGenerator.createHash(value.toString(),
+               ENCODING_DEFAULT, HASH_ALGO_DEFAULT);
       } catch (IllegalArgumentException | NoSuchAlgorithmException e) {
-         LOGGER.error("Exception thrown when attempting to hash the input key, e = {}",
-               e.getCause().getMessage());
+         // Catch an exception that might be thrown directly by the HashGenerator,
+         // log the error and then throw an un-checked exception to cause the
+         // mapper to fail, as we cannot continue processing with null keys.
+         String errMsg = "Exception thrown from HashGenerator when attempting " +
+               " to hash the input key, e = " + e.getCause().getMessage();
+         LOGGER.error(errMsg);
          e.printStackTrace();
+         throw new IllegalStateException(errMsg);
       }
-      Text outKey    = new Text(hashKey);
       
+      Text outKey = new Text(hashKey);
       TaggedTextWithCountWritableComparable outVal =
-            new TaggedTextWithCountWritableComparable(value, new Text(source.toString()), ONE);
+            new TaggedTextWithCountWritableComparable(
+                  value, new Text(source.toString()), ONE);
 
       context.write(outKey, outVal);
       
       switch (source) {
          case REFERENCE:
-            context.getCounter(DdiffMapperCounter.REFERENCE_COUNT).increment(1L);
+            context.getCounter(DdiffMapperCounter.REFERENCE_COUNT)
+               .increment(1L);
             break;
          case TEST:
             context.getCounter(DdiffMapperCounter.TEST_COUNT).increment(1L);

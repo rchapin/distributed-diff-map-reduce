@@ -13,9 +13,8 @@ import org.slf4j.LoggerFactory;
 /**
  * WritableComparable to store the record (Text), the source (Text), and the
  * count (IntWritable) of the number of unique records seen.
- *  
- * @author Ryan Chapin
- * @since  2015-01-25
+ * 
+ * @since  1.0.0
  *
  */
 public class TaggedTextWithCountWritableComparable

@@ -28,6 +28,7 @@
     <mrunit.version>1.1.0</mrunit.version>
     <mrunit.version>1.1.0</mrunit.version>
     <hash-generator.version>1.0.0-SNAPSHOT</hash-generator.version>
+    <system-rules.version>1.8.0</system-rules.version>
   </properties>
 
    <build>
@@ -232,6 +233,13 @@
       <groupId>org.powermock</groupId>
       <artifactId>powermock-api-mockito</artifactId>
       <version>${powermock.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.github.stefanbirkner</groupId>
+      <artifactId>system-rules</artifactId>
+      <version>${system-rules.version}</version>
       <scope>test</scope>
     </dependency>
 

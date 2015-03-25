@@ -10,8 +10,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 /**
  * Will combine any duplicate records emitted from the map method.
  * 
- * @author  Ryan Chapin
- * @since   2015-02-01
+ * @since   1.0.0
  *
  */
 public class DdiffCombiner extends Reducer<Text, TaggedTextWithCountWritableComparable, Text, TaggedTextWithCountWritableComparable> {

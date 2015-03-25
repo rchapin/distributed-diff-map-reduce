@@ -2,9 +2,9 @@
 
 **By:** Ryan Chapin [Contact Info](http://www.ryanchapin.com/contact.html)
 
-Distributed-Diff is a **MRv2** utility for comparing large amounts of ASCII text.  Developed to aid in the testing of systems where potentially millions of records could be generated and needing to be able to do a diff against the expected and generated output.
+Distributed-Diff is a **MRv2** utility for comparing large amounts of text data.  As Java, and the [HashGenerator]() library that is used supports Unicode it supports a wide range of character encodings.  Developed to aid in the testing of systems where potentially millions of records could be generated and needing to be able to do a diff against the expected and generated output.
 
-In the case where the file sizes are too large to fit on a single machine, and/or sorting and diffing them is not feasible on a single machine this utility allows the user to compare two different sets of output and determine if there is a matching line for every record in set A (the reference set) in set B (the test output set).
+In the case where the file sizes are too large to fit on a single machine, and/or sorting and diffing them is not feasible on a single machine this utility allows the user to compare two different sets of output and determine if there is a matching line for every record in set A (the reference set) in set B (the test output set).  It will also determine if there are any additional records in set B (the test output set) that are not in set A (the reference set).
 
 The program will output two sets of records, those that were missing in the test output set, and those additional records in the test output set that should not have been generated.
 
@@ -17,6 +17,8 @@ To build, simply run the following command in the ddiff directory
 ```
 
 This will build the project and create a distribution jar in the target/ directory as expected.
+
+The distributed-diff-n.n.n-jar-with-dependencies.jar includes all of the dependencies, minus the hadoop/hdfs jars, to run using a ```yarn jar ...``` command on a system that is configured to submit jobs to YARN.
 
 If you do not have a valid Hadoop installation on your build machine you will get the following IOException stacktrace:
 
@@ -70,9 +72,28 @@ You will still be able to build the jar, but if you want to eliminate the stack-
 
 ## To Run
 
-After compilation execute the `yarn jar` command as follows.  The first argument after Main is the input path for the reference data, the second is the input path for the test data and the third is the output path.
+After compilation execute the `yarn jar` command as follows.  
 
-$ yarn jar target/distributed-diff-1.0.0.0-SNAPSHOT.jar com.ryanchapin.ddiff.Main /user/rchapin/ddiff/input/ref /user/rchapin/ddiff/input/test /user/rchapin/ddiff/output
+```
+$ yarn jar distributed-diff-n.n.n-jar-with-dependencies.jar com.ryanchapin.ddiff.Main -r /user/rchapin/ddiff/input/ref -t /user/rchapin/ddiff/input/test -o /user/rchapin/ddiff/output
+```
+
+```
+usage: ddiff
+ -a,--hash-algorithm <arg>         [optional] Algorithm to be used to hash
+                                   input records
+ -e,--hash-string-encoding <arg>   [optional] String encoding to be used
+                                   when hashing input records
+ -h,--help                         Print this message
+ -j,--job-name <arg>               [optional] User defined name for this
+                                   M/R job
+ -o,--output-path <arg>            [required] Output path on HDFS to where
+                                   results should be written
+ -r,--reference-data-input-path    [required] Input path on HDFS for the
+                                   reference data
+ -t,--test-data-input-path <arg>   [required] Input path on HDFS for the
+                                   test data
+```
 
 To be added is a shell script wrapper to make execution a bit cleaner.
 
@@ -109,5 +130,34 @@ The pom specifies _Java 1.7_.
 
 ### Running from within Eclipse
 
-TBD
+Following is how to set-up your environment to be able to set breakpoints, run, step-through, and debug the code in Eclipse.
 
+All of the this was done on a machine running Linux, but should work just fine for any *nix machine, and perhaps Windows running Cygwin (assuming that you can get Hadoop and its naitive libraries compiled under Windows).
+
+- Install a pseudo-distributed hadooop cluster on your development box.
+
+- Add the following environment variables to .bash_profile to ensure that they will be applied to any login shells (make sure to check the location of the directories for your installed hadoop distribution):
+
+   ```
+   export LD_LIBRARY_PATH=/usr/lib/hadoop/lib/native
+   export HADOOP_HOME=/usr/lib/hadoop
+   ```
+
+- After you import your maven project into Eclipse update the Build Path to include the correct path to the Native library shared objects:
+
+   - Right-click on your project and select 'Build Path -> Configure Build Path:
+   - Click on 'Libraries' tab:
+   - Click the drop-down arrow for the 'Maven Dependencies'
+   - Click on the drop-down arrow on the 'hadoop-common'.jar
+   - Select the 'Native library location' entry, and click 'Edit'
+   - Browse to the path of the native directory, in my case it was /usr/lib/hadoop/lib/native.
+   - Click 'OK'
+   - Click 'OK' to close the build path dialogue
+
+- Configure the **DDIFF_REF_INPUT_DIR**, **DDIFF_TEST_INPUT_DIR**, and **DDIFF_OUTPUT_DIR** String substitution variables to the location on *local filesystem* that corresponds to the correct input and output data.
+
+From here you should be able to open up the launcher in ```src/test/resources/launchers/DistributedDiff.launch``` and run the code directy in Eclipse.
+
+Add any commandline arguments for input and output directories to the 'Program arguments' section of the run configuration, that points to your LOCAL file system and not HDFS.
+
+Afterwhich, you should be able to run your M/R code and debug it through Eclipse.
