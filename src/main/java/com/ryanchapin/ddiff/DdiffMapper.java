@@ -26,30 +26,33 @@ public class DdiffMapper extends Mapper<LongWritable, Text, Text, TaggedTextWith
    
    protected static final Logger LOGGER = LoggerFactory.getLogger(DdiffMapper.class);
    
-   protected static final HashAlgorithm HASH_ALGO_DEFAULT = HashAlgorithm.SHA256SUM;
+   public static final HashAlgorithm HASH_ALGO_DEFAULT = HashAlgorithm.SHA256SUM;
    
-   protected static final String ENCODING_DEFAULT = "Unicode";
+   public static final String ENCODING_DEFAULT = "UTF-8";
    
    protected static final IntWritable ONE = new IntWritable(1);
-   protected String hashAlgorithm;
+   protected HashAlgorithm hashAlgorithm;
+   protected String stringEncoding;
    protected Source source;
-   protected HashGenerator hashGenerator;
+   
+   // ------------------------------------------------------------------------
+   // Accessor/Mutators:
+   //
+   
+   public HashAlgorithm getHashAlgorithm() {
+      return hashAlgorithm;
+   }
+
+   public String getStringEncoding() {
+      return stringEncoding;
+   }
    
    // ------------------------------------------------------------------------
    // Constructor
    //
-   
-   public HashGenerator getHashGenerator() {
-      return hashGenerator;
-   }
-
-   public void setHashGenerator(HashGenerator hashGenerator) {
-      this.hashGenerator = hashGenerator;
-   }
-
+     
    public DdiffMapper() {
       super();
-      hashGenerator = new HashGenerator();
    }
    
    // ------------------------------------------------------------------------
@@ -61,10 +64,15 @@ public class DdiffMapper extends Mapper<LongWritable, Text, Text, TaggedTextWith
       super.setup(context);
       
       Configuration conf = context.getConfiguration();
-      String hashAlgoValue = conf.get(DistributedDiff.HASH_ALGO_KEY);
-
+//      hashAlgorithm = Enum.valueOf(HashAlgorithm.class, conf.get(DistributedDiff.CONF_HASH_ALGO_KEY));
+      String hashAlgo = conf.get(DistributedDiff.CONF_HASH_ALGO_KEY);
+      System.out.printf("hashAlgo = %s%n", hashAlgo);
+      hashAlgorithm = HashAlgorithm.valueOf(conf.get(DistributedDiff.CONF_HASH_ALGO_KEY));
+      stringEncoding = conf.get(DistributedDiff.CONF_ENCODING_KEY);
+      
+      // TODO: Update log message
       LOGGER.info("{} value retrieved from Configuration instance = {}",
-            DistributedDiff.HASH_ALGO_KEY, hashAlgoValue);
+            DistributedDiff.CONF_HASH_ALGO_KEY, hashAlgorithm.toString());
    }
    
    /**

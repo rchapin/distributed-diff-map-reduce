@@ -48,7 +48,7 @@ public class MainTest extends BaseTest{
    
    @Test
    public void shouldCreateDdiffInstance() throws Exception {
-      Main.main(ARGS_VALID);
+      Main.main(ARGS_VALID_SHORT_OPTS);
       PowerMockito.verifyNew(DistributedDiff.class);         
    }
 
@@ -56,19 +56,19 @@ public class MainTest extends BaseTest{
    @Test(expected = IllegalStateException.class)
    public void shouldThrowExceptionOnDdiffFailure() throws Exception {
       // Define the mock invocation of ToolRunner.run to return non zero value.
-      Mockito.when(ToolRunner.run(mockConf, mockDdiff, ARGS_VALID)).thenReturn(1);
+      Mockito.when(ToolRunner.run(mockConf, mockDdiff, ARGS_VALID_SHORT_OPTS)).thenReturn(1);
       
       // Make the invocation that we want to test
-      Main.main(ARGS_VALID);
+      Main.main(ARGS_VALID_SHORT_OPTS);
    }   
    
    @Test
    public void shouldReturnZeroOnDdiffSuccess() throws Exception {
       // Define the mock invocation of ToolRunner.run to return zero.
-      Mockito.when(ToolRunner.run(mockConf, mockDdiff, ARGS_VALID)).thenReturn(0);
+      Mockito.when(ToolRunner.run(mockConf, mockDdiff, ARGS_VALID_SHORT_OPTS)).thenReturn(0);
       
       // Make the invocation that we want to test
-      Main.main(ARGS_VALID);
+      Main.main(ARGS_VALID_SHORT_OPTS);
       
       assertEquals(0, Main.getRetVal());
    }

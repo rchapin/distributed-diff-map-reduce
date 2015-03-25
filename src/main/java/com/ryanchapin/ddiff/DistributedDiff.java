@@ -1,5 +1,16 @@
 package com.ryanchapin.ddiff;
 
+import java.lang.reflect.Field;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+
+import org.apache.commons.cli.BasicParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionBuilder;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -15,6 +26,8 @@ import org.apache.hadoop.util.Tool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ryanchapin.util.HashGenerator.HashAlgorithm;
+
 /**
  * Utility class for executing a distributed diff against two large data sets.
  * 
@@ -29,26 +42,42 @@ public class DistributedDiff implements Tool {
 
    private static Logger LOGGER = LoggerFactory.getLogger(DistributedDiff.class);
 
-   public static final String HASH_ALGO_KEY = "hash-algo";
-   public static final String SOURCE_ID_KEY = "source-id";
-   
    public static final String MISSING_OUTPUT = "missing";
    public static final String EXTRA_OUTPUT   = "extra";
    
-   private static final int REQUIRED_ARG_COUNT = 3;
+   public static final String OPTION_KEY_REF_INPUT_PATH       = "r";
+   public static final String OPTION_KEY_REF_INPUT_PATH_LONG  = "reference-data-input-path";
    
-   private static final String REF_ARG_INPUT_PATH_NAME   = "Reference INPUT PATH Argumen";
-   private static final String TEST_ARG_INPUT_PATH_NAME  = "Test INPUT PATH Argument";
-   private static final String ARG_OUTPUT_PATH_NANE      = "OUTPUT PATH Argument";
-   private static final String JOB_NAME_ARG_NAME         = "Job Name";
-   private static final String JOB_NAME_DEFAULT          = "ddiff";
+   public static final String OPTION_KEY_TEST_INPUT_PATH      = "t";
+   public static final String OPTION_KEY_TEST_INPUT_PATH_LONG = "test-data-input-path";
    
-   private static final String HASH_ALGO_DEFAULT = "SHA-256";
+   public static final String OPTION_KEY_OUTPUT_PATH      = "o";
+   public static final String OPTION_KEY_OUTPUT_PATH_LONG = "output-path";
+
+   public static final String OPTION_KEY_HASH_ALGO      = "a";
+   public static final String OPTION_KEY_HASH_ALGO_LONG = "hash-algorithm";
+   public static final String OPTION_HASH_ALGO_DEFAULT  = "SHA1SUM";
    
+   public static final String OPTION_KEY_HASH_STRING_ENCODING =
+         "e";
+   public static final String OPTION_KEY_HASH_STRING_ENCODING_LONG =
+         "hash-string-encoding";
+   public static final String OPTION_HASH_STRING_ENCODING_DEFAULT =
+         "UTF-8";
+   
+   public static final String OPTION_KEY_JOB_NAME      = "j";
+   public static final String OPTION_KEY_JOB_NAME_LONG = "job-name";
+   public static final String OPTION_JOB_NAME_DEFAULT  = "ddiff";
+   
+   public static final String CONF_HASH_ALGO_KEY = "hash-algorithm";
+   public static final String CONF_ENCODING_KEY  = "hash-string-encoding";
+
    private String[] args;
    private String referenceInputPath;
    private String testInputPath;
    private String outputPath;
+   private HashAlgorithm hashAlgorithm;
+   private String stringEncoding;
    private String jobId;
 
    private Job job;
@@ -111,6 +140,14 @@ public class DistributedDiff implements Tool {
       this.job = job;
    }   
    
+   public HashAlgorithm getHashAlgorithm() {
+      return hashAlgorithm;
+   }
+
+   public String getStringEncoding() {
+      return stringEncoding;
+   }
+   
    // ------------------------------------------------------------------------
    // Constructor:
    //
@@ -122,24 +159,13 @@ public class DistributedDiff implements Tool {
    //
    
    /**
-    * Receives the String[] args array from the main method which should
-    * include the following arguments, in the following order:
-    * <ol>
-    *   <li>Path to Reference Data:  The path on HDFS to the directory that
-    *       contains the reference data that is to be compared.</li>
-    *   <li>Path to the Test Data:  The path on HDFS to the directory that
-    *       contains the data to be compared to the reference data.<li>
-    *   <li>Output Path:  The path on HDFS to the directory to which the
-    *       output will be written.<li>
-    *   <li>Job Name:  An optional String used to create a separate directory
-    *       into which to write the output.  Enables the user to make multiple
-    *       runs on the same input data paths while writing the output to
-    *       different directories</li>
-    * </ol>
+    * Receives the String[] args array from the main method which will be
+    * parsed by the {@link org.apache.commons.cli} library.
+    * 
     * @param args String[] array passed from the main method.
     */
    @Override
-   public int run(String[] args) {
+   public int run(String[] args) throws IllegalArgumentException {
       if (args == null) {
          String errMsg = "run method was passed a null String[] args.";
          LOGGER.error(errMsg);
@@ -151,12 +177,10 @@ public class DistributedDiff implements Tool {
       LOGGER.info("Invoking DistributedDiff.run with args\n"
          + "referenceInputPath :{}\n"
          + "testInputPath      :{}\n"
-         + "outputPath         :{}",
-         referenceInputPath, testInputPath, outputPath);
-      if (null != jobId && jobId.length() != 0) {
-         LOGGER.info("Invoking DistributedDiff.run with arg\n"
-            + "jobId              :{}", jobId);
-      }
+         + "outputPath         :{}\n"
+         + "jobId              :{}\n"
+         + "hashAlgorithm      :{}",
+         referenceInputPath, testInputPath, outputPath, jobId, hashAlgorithm);
       
       try {
          setupJob();
@@ -171,26 +195,145 @@ public class DistributedDiff implements Tool {
       return (0);
    }
    
-   private void parseInputArgs() {
-      // Ensure that we have at least 4 arguments.  The 5th is optional
-      if (args.length < REQUIRED_ARG_COUNT) {
-         String errMsg = "Only " + args.length + " arguments were provided." +
-            "  " + REQUIRED_ARG_COUNT + " is the required number of arguments";
+   private void parseInputArgs() throws IllegalArgumentException {
+      
+      // Build our command line options
+      @SuppressWarnings("static-access")
+      Option refDataPath = OptionBuilder.withLongOpt(OPTION_KEY_REF_INPUT_PATH_LONG)
+            .withDescription("Input path on HDFS for the reference data")
+            .isRequired(true)
+            .hasArgs(1)
+            .create(OPTION_KEY_REF_INPUT_PATH);
+
+      @SuppressWarnings("static-access")
+      Option testDataPath = OptionBuilder.withLongOpt(OPTION_KEY_TEST_INPUT_PATH_LONG)
+            .withDescription("Input path on HDFS for the test data")
+            .isRequired(true)
+            .hasArgs(1)
+            .create(OPTION_KEY_TEST_INPUT_PATH);
+      
+      @SuppressWarnings("static-access")
+      Option outPath = OptionBuilder.withLongOpt(OPTION_KEY_OUTPUT_PATH_LONG)
+            .withDescription("Output path on HDFS to where results should be written")
+            .isRequired(true)
+            .hasArgs(1)
+            .create(OPTION_KEY_OUTPUT_PATH);
+      
+      @SuppressWarnings("static-access")
+      Option hashAlgo = OptionBuilder.withLongOpt(OPTION_KEY_HASH_ALGO_LONG)
+            .withDescription("Algorithm to be used to hash input records")
+            .isRequired(false)
+            .hasArgs(1)
+            .create(OPTION_KEY_HASH_ALGO);
+      
+      @SuppressWarnings("static-access")
+      Option encoding = OptionBuilder.withLongOpt(OPTION_KEY_HASH_STRING_ENCODING_LONG)
+            .withDescription("String encoding to be used when hashing input records")
+            .isRequired(false)
+            .hasArgs(1)
+            .create(OPTION_KEY_HASH_STRING_ENCODING);
+      
+      @SuppressWarnings("static-access")
+      Option jobName = OptionBuilder.withLongOpt(OPTION_KEY_JOB_NAME_LONG)
+            .withDescription("User defined name for this M/R job")
+            .isRequired(false)
+            .hasArgs(1)
+            .create(OPTION_KEY_JOB_NAME);
+      
+      Options options = new Options();
+      options.addOption(refDataPath);
+      options.addOption(testDataPath);
+      options.addOption(outPath);
+      options.addOption(hashAlgo);
+      options.addOption(encoding);
+      options.addOption(jobName);
+      
+      // Create the parser and parse the String[] args
+      CommandLineParser parser = new BasicParser();
+      CommandLine commandLine  = null;
+      
+      try {
+         commandLine = parser.parse(options, args);
+         
+         referenceInputPath =
+               commandLine.getOptionValue(OPTION_KEY_REF_INPUT_PATH);
+         LOGGER.info("Cli arg: {} = {}",
+               OPTION_KEY_REF_INPUT_PATH_LONG, referenceInputPath);
+         
+         testInputPath =
+               commandLine.getOptionValue(OPTION_KEY_TEST_INPUT_PATH);
+         LOGGER.info("Cli arg: {} = {}",
+               OPTION_KEY_TEST_INPUT_PATH_LONG, testInputPath);
+         
+         outputPath = commandLine.getOptionValue(OPTION_KEY_OUTPUT_PATH);
+         LOGGER.info("Cli arg: {} = {}", 
+               OPTION_KEY_OUTPUT_PATH_LONG, outputPath);
+         
+         String hashAlgoString = commandLine.getOptionValue(
+               OPTION_KEY_HASH_ALGO, OPTION_HASH_ALGO_DEFAULT);
+         try {
+            hashAlgorithm = HashAlgorithm.valueOf(hashAlgoString.toUpperCase());
+            LOGGER.info("Cli arg: {} = {}",
+                  OPTION_KEY_HASH_ALGO_LONG, hashAlgorithm.toString());
+         } catch (IllegalArgumentException e) {
+            String errMsg = "Option " + OPTION_KEY_HASH_ALGO_LONG +
+                  " was passed an invalid HashAlgorithm enum, '" +
+                  hashAlgoString + ".  Using default value of " +
+                  OPTION_HASH_ALGO_DEFAULT;
+            LOGGER.error(errMsg + ", e = {}", e.toString());
+            
+            hashAlgorithm = HashAlgorithm.valueOf(OPTION_HASH_ALGO_DEFAULT);
+         }
+         
+         jobId = commandLine.getOptionValue(
+               OPTION_KEY_JOB_NAME, OPTION_JOB_NAME_DEFAULT);
+         LOGGER.info("{} is set to {}", OPTION_KEY_JOB_NAME_LONG, jobId);
+         
+         stringEncoding = commandLine.getOptionValue(
+               OPTION_KEY_HASH_STRING_ENCODING,
+               OPTION_HASH_STRING_ENCODING_DEFAULT);
+
+         
+         LOGGER.info("{} is set to {}",
+               OPTION_KEY_HASH_STRING_ENCODING_LONG, stringEncoding);
+         
+      } catch (ParseException e) {
+         String errMsg = "Unable to parse command line properties, e = " + e.toString();
          LOGGER.error(errMsg);
          throw new IllegalArgumentException(errMsg);
       }
+     
+      validateArg(referenceInputPath, OPTION_KEY_REF_INPUT_PATH_LONG);
+      validateArg(testInputPath,      OPTION_KEY_TEST_INPUT_PATH_LONG);
+      validateArg(outputPath,         OPTION_KEY_OUTPUT_PATH_LONG);
+      validateArg(jobId,              OPTION_KEY_JOB_NAME_LONG);
+      validateArg(stringEncoding,     OPTION_KEY_HASH_STRING_ENCODING_LONG);
       
-      validateArg(args[0],  REF_ARG_INPUT_PATH_NAME);
-      validateArg(args[1],  TEST_ARG_INPUT_PATH_NAME);
-      validateArg(args[2],  ARG_OUTPUT_PATH_NANE);
-      
-      referenceInputPath = args[0];
-      testInputPath      = args[1];
-      outputPath         = args[2];
-      
-      if (args.length > REQUIRED_ARG_COUNT) {
-         validateArg(args[3], JOB_NAME_ARG_NAME);
-         setJobId(args[3]);
+      // Check to make sure that this is a valid StandardCharsets constant
+      Field[] standardCharsetsFields = StandardCharsets.class.getFields();
+      boolean validCharSetArg = false;
+      for (Field field : standardCharsetsFields) {
+         try {
+            Charset charset = (Charset) field.get(null);
+            if (stringEncoding.equals(charset.displayName())) {
+               validCharSetArg = true;
+               break;
+            }
+         } catch (IllegalAccessException e) {
+            String errMsg = "Unable to iterate through the Fields of the " +
+                  "StandardCharsets class, e = " + e.toString();
+            LOGGER.error(errMsg);
+            throw new IllegalArgumentException("IllegalAccessException thrown " +
+                  "while attempting to validate the " +
+                  OPTION_KEY_HASH_STRING_ENCODING_LONG + " argument\n" +
+                  "e = " + e.toString());
+         }
+      }
+      if (!validCharSetArg) {
+         String errMsg = "Invalid " + OPTION_KEY_HASH_STRING_ENCODING_LONG +
+               " argument was provided which is not a valid charset encoding";
+         LOGGER.error(errMsg);
+         throw new IllegalArgumentException(errMsg);
       }
    }
    
@@ -207,15 +350,10 @@ public class DistributedDiff implements Tool {
       }
 
       // Set the hash algorithm to be used in the mappers
-      conf.set(HASH_ALGO_KEY, HASH_ALGO_DEFAULT);
+      conf.set(CONF_HASH_ALGO_KEY, hashAlgorithm.toString());
+      conf.set(CONF_ENCODING_KEY,  stringEncoding);
       
-      String jobName = null;
-      if (null != jobId && jobId.length() != 0) {
-         jobName = JOB_NAME_DEFAULT + "_" + jobId;
-      } else {
-         jobName = JOB_NAME_DEFAULT;
-      }
-      job.setJobName(jobName);
+      job.setJobName(jobId);
    
       job.setInputFormatClass(TextInputFormat.class);
       job.setOutputFormatClass(TextOutputFormat.class);
@@ -246,7 +384,9 @@ public class DistributedDiff implements Tool {
             Text.class, IntWritable.class); 
    }
    
-   private void validateArg(String arg, String argName) {
+   private void validateArg(String arg, String argName)
+      throws IllegalArgumentException
+   {
       if (arg == null || arg.length() == 0) {
          String errMsg = argName + " argument was either null or empty";
          LOGGER.error(errMsg);

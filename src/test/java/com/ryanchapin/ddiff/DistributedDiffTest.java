@@ -100,8 +100,6 @@ public class DistributedDiffTest extends BaseTest {
    // Test Methods:
    //    
    
-   // TODO: Flesh out the rest of the testing to check for all of the expected
-   //       settings in the Job instance before executing the job.
    
    @Test(expected = IllegalArgumentException.class)
    public void shouldThrowIllegalArgExcpOnNullArgs() {
@@ -109,24 +107,65 @@ public class DistributedDiffTest extends BaseTest {
       ddiff.run(null);
    }
    
-   @Test(expected = IllegalArgumentException.class)
-   public void shouldThrowIllegalArgExcpOnLessThanFourArgs() {
+   /** -- Valid Required Input --------------------------------------------- */
+   @Test
+   public void shouldSetConfigsWithValidInputShortOpts() {
       DistributedDiff ddiff = getConfiguredDdiff();
-      ddiff.run(ARGS_ONLY_THREE_ELEMENTS);
+      ddiff.run(ARGS_VALID_SHORT_OPTS);
+      
+      assertEquals(INPUT_PATH_REF_VALID,  ddiff.getReferenceInputPath());
+      assertEquals(INPUT_PATH_TEST_VALID, ddiff.getTestInputPath());
+      assertEquals(OUTPUT_PATH_VALID,     ddiff.getOutputPath());
+   }
+
+   @Test
+   public void shouldSetConfigsWithValidInputLongOpts() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_VALID_LONG_OPTS);
+      
+      assertEquals(INPUT_PATH_REF_VALID,  ddiff.getReferenceInputPath());
+      assertEquals(INPUT_PATH_TEST_VALID, ddiff.getTestInputPath());
+      assertEquals(OUTPUT_PATH_VALID,     ddiff.getOutputPath());
    }
    
+   @Test
+   public void shouldSetConfigurationWithFullSetOfArgs() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_VALID_WITH_HASH_ALGO_AND_STRING_ENCODING);
+      
+      assertEquals(INPUT_PATH_REF_VALID,  ddiff.getReferenceInputPath());
+      assertEquals(INPUT_PATH_TEST_VALID, ddiff.getTestInputPath());
+      assertEquals(OUTPUT_PATH_VALID,     ddiff.getOutputPath());
+      assertEquals(HASH_ALGO_VALID,       ddiff.getHashAlgorithm().toString());
+      assertEquals(STRING_ENCODING_VALID, ddiff.getStringEncoding());
+   }
+   
+   /** -- Reference Path Args ---------------------------------------------- */
+   @Test(expected = IllegalArgumentException.class)
+   public void shouldThrowIllegalArgExcpMissingRefInputPathArg() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_REF_INPUT_PATH_MISSING);
+   }
+
    @Test(expected = IllegalArgumentException.class)
    public void shouldThrowIllegalArgExcpOnEmptyRefInputPathArg() {
       DistributedDiff ddiff = getConfiguredDdiff();
       ddiff.run(ARGS_REF_INPUT_PATH_EMPTY);
    }
-   
+ 
    @Test(expected = IllegalArgumentException.class)
    public void shouldThrowIllegalArgExcpOnNullRefInputPathArg() {
       DistributedDiff ddiff = getConfiguredDdiff();
       ddiff.run(ARGS_REF_INPUT_PATH_NULL);
    }
-
+   
+   /** -- Test Path Args --------------------------------------------------- */
+   @Test(expected = IllegalArgumentException.class)
+   public void shouldThrowIllegalArgExcpOnMissingTestInputPathArg() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_TEST_INPUT_PATH_MISSING);
+   }
+   
    @Test(expected = IllegalArgumentException.class)
    public void shouldThrowIllegalArgExcpOnEmptyTestInputPathArg() {
       DistributedDiff ddiff = getConfiguredDdiff();
@@ -139,6 +178,13 @@ public class DistributedDiffTest extends BaseTest {
       ddiff.run(ARGS_TEST_INPUT_PATH_NULL);
    }
 
+   /** -- Output Path Args ------------------------------------------------- */
+   @Test(expected = IllegalArgumentException.class)
+   public void shouldThrowIllegalArgExcpOnMissingOutputPathArg() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_OUTPUT_PATH_MISSING);
+   }
+   
    @Test(expected = IllegalArgumentException.class)
    public void shouldThrowIllegalArgExcpOnEmptyOutputPathArg() {
       DistributedDiff ddiff = getConfiguredDdiff();
@@ -150,25 +196,129 @@ public class DistributedDiffTest extends BaseTest {
       DistributedDiff ddiff = getConfiguredDdiff();
       ddiff.run(ARGS_OUTPUT_PATH_NULL);
    }
-      
-   @Test
-   public void shouldSetConfigsWithValidInput() {
-      DistributedDiff ddiff = getConfiguredDdiff();
-      ddiff.run(ARGS_VALID);
-      
-      assertEquals(INPUT_PATH_REF_VALID,   ddiff.getReferenceInputPath());
-      assertEquals(INPUT_PATH_TEST_VALID,  ddiff.getTestInputPath());
-      assertEquals(OUTPUT_PATH_VALID, ddiff.getOutputPath());
-   }
    
+   /** -- Job Id Args ------------------------------------------------------ */
    @Test
-   public void shouldSetConfigsWithValidInputWithJobId() {
+   public void shouldSetConfigsWithValidInputWithJobIdShortOpt() {
       DistributedDiff ddiff = getConfiguredDdiff();
-      ddiff.run(ARGS_VALID_WITH_JOB_ID);
+      ddiff.run(ARGS_VALID_WITH_JOB_ID_SHORT);
+      
+      assertEquals(JOB_ID, ddiff.getJobId());
+   }
+
+   @Test
+   public void shouldSetConfigsWithValidInputWithJobIdLongOpt() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_VALID_WITH_JOB_ID_LONG);
       
       assertEquals(JOB_ID, ddiff.getJobId());
    }
    
+   @Test(expected = IllegalArgumentException.class)
+   public void shouldThrowIllegalArgExcpOnEmptyJobIdArg() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_JOB_ID_EMPTY);
+   }
+   
+   @Test(expected = IllegalArgumentException.class)
+   public void shouldThrowIllegalArgExcpOnNullJobIdArg() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_JOB_ID_NULL);
+   }
+   
+   @Test
+   public void shouldUseDefaultJobIdWithoutJobIdArg() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_VALID_SHORT_OPTS);
+      assertEquals(DistributedDiff.OPTION_JOB_NAME_DEFAULT, ddiff.getJobId());
+   }
+   
+   /** -- Hash Algorithm Args ---------------------------------------------- */
+   @Test
+   public void shouldUseDefaultHashAlgoOnInvalidHashAlgoArg() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_INVALID_HASH_ALGO);
+      assertEquals(DistributedDiff.OPTION_HASH_ALGO_DEFAULT,
+            ddiff.getHashAlgorithm().toString());
+   }
+   
+   @Test
+   public void shouldUseDefaultHashAlgoWithoutHashAlgoArg() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_VALID_SHORT_OPTS);
+      assertEquals(DistributedDiff.OPTION_HASH_ALGO_DEFAULT,
+            ddiff.getHashAlgorithm().toString());
+   }
+
+   @Test
+   public void shouldUseDefaultHashAlgoWithEmptyHashAlgoArg() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_HASH_ALGO_EMPTY);
+      assertEquals(DistributedDiff.OPTION_HASH_ALGO_DEFAULT,
+            ddiff.getHashAlgorithm().toString());
+   }
+
+   @Test(expected = IllegalArgumentException.class)
+   public void shouldThrowIllegalArgExcpOnNullHashAlgoArg() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_HASH_ALGO_NULL);
+      assertEquals(DistributedDiff.OPTION_HASH_ALGO_DEFAULT,
+            ddiff.getHashAlgorithm().toString());
+   }
+   
+   @Test
+   public void shouldSetConfigsWithValidInputWithHashAlgoShortOpt() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_VALID_HASH_ALGO_SHORT);
+      assertEquals(HASH_ALGO_VALID, ddiff.getHashAlgorithm().toString());
+   }
+   
+   @Test
+   public void shouldSetConfigsWithValidInputWithHashAlgoLongOpt() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_VALID_HASH_ALGO_LONG);
+      assertEquals(HASH_ALGO_VALID, ddiff.getHashAlgorithm().toString());   
+   }
+   
+   /** -- String Encoding Args --------------------------------------------- */
+   @Test
+   public void shouldUseDefaultStringEncodingWithoutStringEncodingArg() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_VALID_SHORT_OPTS);
+      assertEquals(DistributedDiff.OPTION_HASH_STRING_ENCODING_DEFAULT, ddiff.getStringEncoding());
+   }
+   
+   @Test(expected = IllegalArgumentException.class)
+   public void shouldThrowIllegalArgExcpOnNullStringEncodingArg() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_STRING_ENCODING_NULL);
+   }
+
+   @Test(expected = IllegalArgumentException.class)
+   public void shouldThrowIllegalArgExcpOnInvalidStringEncodingArg() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_STRING_ENCODING_INVALID);
+   }
+   
+   @Test(expected = IllegalArgumentException.class)
+   public void shouldThrowIllegalArgExcpOnEmptyStringEncodingArg() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_STRING_ENCODING_EMPTY);
+   }
+   
+   @Test
+   public void shouldSetConfigsWithValidInputWithStringEncodingShortOpt() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_VALID_WITH_STRING_ENCODING_SHORT);
+      assertEquals(STRING_ENCODING_VALID, ddiff.getStringEncoding());
+   }
+   
+   @Test
+   public void shouldSetConfigsWithValidInputWithStringEncodingLongOpt() {
+      DistributedDiff ddiff = getConfiguredDdiff();
+      ddiff.run(ARGS_VALID_WITH_STRING_ENCODING_LONG);
+      assertEquals(STRING_ENCODING_VALID, ddiff.getStringEncoding());   
+   }
    
    // ------------------------------------------------------------------------
    // Utility Methods:

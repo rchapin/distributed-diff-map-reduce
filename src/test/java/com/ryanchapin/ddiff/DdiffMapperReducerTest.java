@@ -1,6 +1,8 @@
 package com.ryanchapin.ddiff;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,7 +21,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
@@ -49,9 +50,6 @@ public class DdiffMapperReducerTest extends BaseTest{
 
    private static final Logger LOGGER = LoggerFactory.getLogger(DdiffMapperReducerTest.class);
    
-//   @Mock
-//   private HashGenerator mockHashGenerator;
-   
    private MapDriver<LongWritable,
                      Text, Text,
                      TaggedTextWithCountWritableComparable> mapDriverRef;
@@ -76,10 +74,9 @@ public class DdiffMapperReducerTest extends BaseTest{
    
    @Before
    public void setUp() throws Exception {
-      mockHashGenerator = Mockito.mock(HashGenerator.class);
-      
+      // Call the mock set-up for this class to reset all of the expectations
+      // before each run.
       PowerMockito.mockStatic(HashGenerator.class);
-//      Mockito.when(HashGenerator.createHash(input, encoding, hashAlgorithm))
    }
    
    @After
@@ -87,7 +84,6 @@ public class DdiffMapperReducerTest extends BaseTest{
       mapDriverRef      = null;
       mapDriverTest     = null;
       reduceDriver      = null;
-      mockHashGenerator = null;
    }
    
    private MapDriver<LongWritable, Text, Text, TaggedTextWithCountWritableComparable>
@@ -120,26 +116,37 @@ public class DdiffMapperReducerTest extends BaseTest{
          default:
             break;
       }
-      
-      ddiffMapper.setHashGenerator(mockHashGenerator);
-      
+
       MapDriver<LongWritable, Text, Text, TaggedTextWithCountWritableComparable> mapDriver =
             new MapDriver<LongWritable,
                           Text, Text,
                           TaggedTextWithCountWritableComparable>();
       
       mapDriver.setMapper(ddiffMapper);
-      // mapDriver.setKeyComparator(new TaggedKeyGroupingComparator());
       Configuration conf = mapDriver.getConfiguration();
-      conf.set(DistributedDiff.HASH_ALGO_KEY, DdiffMapper.HASH_ALGO_DEFAULT.toString());
+      conf.set(DistributedDiff.CONF_HASH_ALGO_KEY, DdiffMapper.HASH_ALGO_DEFAULT.toString());
 
+      
       // Based on the contents of inputRecords and outputRecords set up
       // all of the mock expectations for the hash generator and add the
       // input and expected output to the mapDriver.
+      
       for (int i = 0; i < numRows; i++) {
-         Mockito.when(mockHashGenerator
-               .createHash(inputRecords.get(i).getRecord(), DdiffMapper.HASH_ALGO_DEFAULT))
-               .thenReturn(inputRecords.get(i).getHash());
+         
+         try {
+            Mockito.when(HashGenerator.createHash(
+                  inputRecords.get(i).getRecord(), DdiffMapper.ENCODING_DEFAULT, DdiffMapper.HASH_ALGO_DEFAULT))
+                  .thenReturn(inputRecords.get(i).getHash()
+            );
+         } catch (UnsupportedEncodingException |
+               IllegalArgumentException |
+               NoSuchAlgorithmException e) {
+            LOGGER.error("Setting and/or invoking the mock of the static " +
+                  " HashGenerator methods threw an exception, " +
+                  " e = {}", e.toString());
+            e.printStackTrace();
+         }
+         
          mapDriver.addInput(new LongWritable(i + 1),
                new Text(inputRecords.get(i).getRecord()));
          mapDriver.addOutput(outputRecords.get(i).getKey(),
@@ -173,9 +180,9 @@ public class DdiffMapperReducerTest extends BaseTest{
             dDiffMapper = new DdiffMapperTestInput();
             break;
       }
-      dDiffMapper.setHashGenerator(mockHashGenerator);
+
       Configuration conf = mapReduceDriver.getConfiguration();
-      conf.set(DistributedDiff.HASH_ALGO_KEY, DdiffMapper.HASH_ALGO_DEFAULT);
+      conf.set(DistributedDiff.CONF_HASH_ALGO_KEY, DdiffMapper.HASH_ALGO_DEFAULT.toString());
       
       mapReduceDriver.withMapper(dDiffMapper);
       mapReduceDriver.withReducer(new DdiffReducer());
@@ -204,10 +211,17 @@ public class DdiffMapperReducerTest extends BaseTest{
       mapReduceDriver.addAll(inputList);
 
       // Set up the mockHashGenerator to return the expected hash
-      Mockito.when(
-            mockHashGenerator.createHash(inputRecord.getRecord(),
-                  DdiffMapper.HASH_ALGO_DEFAULT)).thenReturn(
-            inputRecord.getHash());
+      try {
+         Mockito.when(
+               HashGenerator.createHash(inputRecord.getRecord(),
+                     DdiffMapper.ENCODING_DEFAULT, DdiffMapper.HASH_ALGO_DEFAULT))
+                     .thenReturn(inputRecord.getHash());
+      } catch (IllegalArgumentException | NoSuchAlgorithmException e) {
+         LOGGER.error("Setting and/or invoking the mock of the static " +
+               " HashGenerator methods threw an exception, " +
+               " e = {}", e.toString());
+         e.printStackTrace();
+      }
 
       // Set up the expected Reduce-side output
       final Text outputKey = new Text(inputRecord.getRecord());
