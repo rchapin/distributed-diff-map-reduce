@@ -19,5 +19,4 @@
 <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-r ${DDIFF_REF_INPUT_DIR} -t ${DDIFF_TEST_INPUT_DIR} -o ${DDIFF_OUTPUT_DIR}"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="distributed-diff-map-reduce"/>
 <stringAttribute key="org.eclipse.jdt.launching.SOURCE_PATH_PROVIDER" value="org.eclipse.m2e.launchconfig.sourcepathProvider"/>
-<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dmapreduce.framework.name=local"/>
 </launchConfiguration>
