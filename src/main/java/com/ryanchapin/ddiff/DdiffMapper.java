@@ -64,15 +64,13 @@ public class DdiffMapper extends Mapper<LongWritable, Text, Text, TaggedTextWith
       super.setup(context);
       
       Configuration conf = context.getConfiguration();
-//      hashAlgorithm = Enum.valueOf(HashAlgorithm.class, conf.get(DistributedDiff.CONF_HASH_ALGO_KEY));
-      String hashAlgo = conf.get(DistributedDiff.CONF_HASH_ALGO_KEY);
-      System.out.printf("hashAlgo = %s%n", hashAlgo);
-      hashAlgorithm = HashAlgorithm.valueOf(conf.get(DistributedDiff.CONF_HASH_ALGO_KEY));
+      hashAlgorithm = Enum.valueOf(HashAlgorithm.class, conf.get(DistributedDiff.CONF_HASH_ALGO_KEY));
       stringEncoding = conf.get(DistributedDiff.CONF_ENCODING_KEY);
-      
-      // TODO: Update log message
-      LOGGER.info("{} value retrieved from Configuration instance = {}",
-            DistributedDiff.CONF_HASH_ALGO_KEY, hashAlgorithm.toString());
+
+      LOGGER.info("Values from Configuration instance\n\t{} = {}\n\t{} = {}",
+            DistributedDiff.CONF_HASH_ALGO_KEY, hashAlgorithm.toString(),
+            DistributedDiff.CONF_ENCODING_KEY, stringEncoding
+            );
    }
    
    /**

@@ -19,8 +19,7 @@
     <maven.assembly.plugin.version>2.5.3</maven.assembly.plugin.version>
     <commons.codec.version>1.6</commons.codec.version>
     <commons.cli.version>1.2</commons.cli.version>
-    <hadoop.mapreduce.client.core.version>2.4.0</hadoop.mapreduce.client.core.version>
-    <hadoop.common.version>2.4.0</hadoop.common.version>
+    <hadoop.version>2.4.0</hadoop.version>
     <slf4j.version>1.7.7</slf4j.version>
     <log4j.version>1.2.17</log4j.version>
     <junit.version>4.11</junit.version>
@@ -140,14 +139,28 @@
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-mapreduce-client-core</artifactId>
-      <version>${hadoop.mapreduce.client.core.version}</version>
+      <version>${hadoop.version}</version>
       <scope>provided</scope>
     </dependency>
 
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-common</artifactId>
-      <version>${hadoop.common.version}</version>
+      <version>${hadoop.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-hdfs</artifactId>
+      <version>${hadoop.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-client</artifactId>
+      <version>${hadoop.version}</version>
       <scope>provided</scope>
     </dependency>
 

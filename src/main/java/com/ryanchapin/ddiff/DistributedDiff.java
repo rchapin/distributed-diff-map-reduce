@@ -69,8 +69,8 @@ public class DistributedDiff implements Tool {
    public static final String OPTION_KEY_JOB_NAME_LONG = "job-name";
    public static final String OPTION_JOB_NAME_DEFAULT  = "ddiff";
    
-   public static final String CONF_HASH_ALGO_KEY = "hash-algorithm";
-   public static final String CONF_ENCODING_KEY  = "hash-string-encoding";
+   public static final String CONF_HASH_ALGO_KEY = "hash.algorithm";
+   public static final String CONF_ENCODING_KEY  = "hash.string.encoding";
 
    private String[] args;
    private String referenceInputPath;
@@ -339,6 +339,15 @@ public class DistributedDiff implements Tool {
    
    private void setupJob() throws Exception {
       Configuration conf = getConf();
+      
+      // Set the hash algorithm to be used in the mappers
+      // Make sure to set an key/value pairs that you want to pass in the
+      // Configuration BEFORE getting a job instance, as the
+      // Job.getInstance(Configuration conf) method makes a COPY of the
+      // Configuration instance and does not pass a reference.
+      conf.set(CONF_HASH_ALGO_KEY, hashAlgorithm.toString());
+      conf.set(CONF_ENCODING_KEY,  stringEncoding);
+      
       job = Job.getInstance(conf);
       job.setJarByClass(DistributedDiff.class);
 
@@ -349,10 +358,6 @@ public class DistributedDiff implements Tool {
          fs.delete(outPath, true);
       }
 
-      // Set the hash algorithm to be used in the mappers
-      conf.set(CONF_HASH_ALGO_KEY, hashAlgorithm.toString());
-      conf.set(CONF_ENCODING_KEY,  stringEncoding);
-      
       job.setJobName(jobId);
    
       job.setInputFormatClass(TextInputFormat.class);
