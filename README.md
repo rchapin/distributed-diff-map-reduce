@@ -161,3 +161,11 @@ From here you should be able to open up the launcher in ```src/test/resources/la
 Add any commandline arguments for input and output directories to the 'Program arguments' section of the run configuration, that points to your LOCAL file system and not HDFS.
 
 Afterwhich, you should be able to run your M/R code and debug it through Eclipse.
+
+### Test Data
+
+There is a script provided for generating some sample data, see ```src/test/resources/gen_test_data.sh```.  Running the script with -h or without any arguments will print out usage informatin.
+
+It will generate n number of rows of text into an output file.  Each row will be prefixed with a user supplied string and suffixed with an incrementing, positive int.  For testing, it can be used to generate a 'reference' data file, and then copied to a 'test' data file.  From there, making a known set of changes to each should enable the user to test the program run on a YARN cluster.
+
+
