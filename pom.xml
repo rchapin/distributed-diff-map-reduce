@@ -4,17 +4,43 @@
 
   <groupId>com.ryanchapin.ddiff</groupId>
   <artifactId>distributed-diff</artifactId>
-  <version>1.1.0-SNAPSHOT</version>
+  <version>1.1.0</version>
   <packaging>jar</packaging>
   <description>
     A diff tool that operates on large sets of data as a Map/Reduce job
   </description>
   <name>Distributed Diff</name>
-  <url></url>
+  <url>http://www.ryanchapin.com/open-source/distributed-diff-map-reduce.html</url>
+
+  <licenses>
+    <license>
+      <name>The BSD 3-Clause License</name>
+      <url>http://opensource.org/licenses/BSD-3-Clause</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>rchapin</id>
+      <name>Ryan Chapin</name>
+      <email>rchapin@nbinteractive.com</email>
+      <url>http://www.ryanchapin.com</url>
+      <roles>
+        <role>architect</role>
+        <role>developer</role>
+      </roles>
+      <timezone>America/New_York</timezone>
+      <properties>
+        <picUrl>http://www.gravatar.com/516f2158d74d134faa9649e9180ef782</picUrl>
+      </properties>
+    </developer>
+  </developers>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <jdk.version>1.7</jdk.version>
     <maven.surefire.plugin.version>2.18.1</maven.surefire.plugin.version>
     <maven.assembly.plugin.version>2.5.3</maven.assembly.plugin.version>
     <commons.codec.version>1.6</commons.codec.version>
@@ -23,11 +49,12 @@
     <slf4j.version>1.7.7</slf4j.version>
     <log4j.version>1.2.17</log4j.version>
     <junit.version>4.11</junit.version>
+    <hamcrest-core.version>1.3</hamcrest-core.version>
     <mockito.all.version>1.10.8</mockito.all.version>
     <powermock.version>1.6.1</powermock.version>
     <mrunit.version>1.1.0</mrunit.version>
     <mrunit.version>1.1.0</mrunit.version>
-    <hash-generator.version>1.0.0-SNAPSHOT</hash-generator.version>
+    <hashgenerator.version>1.0.0</hashgenerator.version>
     <system-rules.version>1.8.0</system-rules.version>
   </properties>
 
@@ -108,8 +135,8 @@
           <artifactId>maven-compiler-plugin</artifactId>
           <version>3.2</version>
           <configuration>
-            <source>1.7</source>
-            <target>1.7</target>
+            <source>${jdk.version}</source>
+            <target>${jdk.version}</target>
           </configuration>
         </plugin>
 
@@ -132,8 +159,8 @@
 
     <dependency>
       <groupId>com.ryanchapin.util</groupId>
-      <artifactId>hash-generator</artifactId>
-      <version>${hash-generator.version}</version>
+      <artifactId>hashgenerator</artifactId>
+      <version>${hashgenerator.version}</version>
     </dependency>
 
     <!-- Hadoop -->
@@ -182,7 +209,6 @@
       <groupId>log4j</groupId>
       <artifactId>log4j</artifactId>
       <version>${log4j.version}</version>
-      <!-- <scope>runtime</scope> -->
     </dependency>
 
     <!-- Testing dependencies -->
@@ -197,7 +223,7 @@
     <dependency>
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest-core</artifactId>
-      <version>1.3</version>
+      <version>${hamcrest-core.version}</version>
       <scope>test</scope>
     </dependency>
 
@@ -246,3 +272,4 @@
   </dependencies>
 
 </project>
+
