@@ -2,7 +2,7 @@
 
 **By:** Ryan Chapin [Contact Info](http://www.ryanchapin.com/contact.html)
 
-Distributed-Diff is a **MRv2** utility for comparing large amounts of text data.  As Java, and the [HashGenerator]() library that is used supports Unicode it supports a wide range of character encodings.  Developed to aid in the testing of systems where potentially millions of records could be generated and needing to be able to do a diff against the expected and generated output.
+Distributed-Diff is a **MRv2** utility for comparing large amounts of text data.  As Java, and the [HashGenerator](http://www.ryanchapin.com/open-source/java-hash-generator-library.html) library that is used supports Unicode it supports a wide range of character encodings.  Developed to aid in the testing of systems where potentially millions of records could be generated and needing to be able to do a diff against the expected and generated output.
 
 In the case where the file sizes are too large to fit on a single machine, and/or sorting and diffing them is not feasible on a single machine this utility allows the user to compare two different sets of output and determine if there is a matching line for every record in set A (the reference set) in set B (the test output set).  It will also determine if there are any additional records in set B (the test output set) that are not in set A (the reference set).
 
