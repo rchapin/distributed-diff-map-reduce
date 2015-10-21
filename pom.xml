@@ -4,7 +4,7 @@
 
   <groupId>com.ryanchapin.ddiff</groupId>
   <artifactId>distributed-diff</artifactId>
-  <version>1.2.0</version>
+  <version>1.2.1-SNAPSHOT</version>
   <packaging>jar</packaging>
   <description>
     A diff tool that operates on large sets of data as a Map/Reduce job
