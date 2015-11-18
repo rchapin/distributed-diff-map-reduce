@@ -235,7 +235,14 @@ public class DdiffMapperReducerTest extends BaseTest{
       // framework and thus the tests always fail. So, as a work-around we will
       // just invoke the MR job and then examine the counters to validate the
       // MR job.
+      //
+      // This is the MapReduceDriver method that does not work correctly with
+      // MRUnit 1.1.0
       // mapReduceDriver.runTest();
+      
+      // The invocation on the driver that allows us to do our validation
+      // of the output based on the counter values and NOT the actual compared
+      // to the expected values.
       mapReduceDriver.run();
 
       Map<DdiffMapperCounter, Long> mapExpectedCounts = new HashMap<DdiffMapperCounter, Long>();
@@ -385,7 +392,7 @@ public class DdiffMapperReducerTest extends BaseTest{
           new Pair<Text, IntWritable>(outputKey, outputVal);
       reduceDriver.addMultiOutput(DistributedDiff.MISSING_OUTPUT, output);
       reduceDriver.runTest();
-      
+            
       Map<DdiffReduceCounter, Long> expectedCounts =
             new HashMap<DdiffReduceCounter, Long>();
       expectedCounts.put(DdiffReduceCounter.MISSING, 3L);

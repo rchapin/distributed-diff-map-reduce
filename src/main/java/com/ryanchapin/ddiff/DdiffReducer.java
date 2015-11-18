@@ -29,8 +29,9 @@ public class DdiffReducer extends Reducer<Text, TaggedTextWithCountWritableCompa
    private MultipleOutputs<Text, IntWritable> mos;
    
    @Override
-   public void setup(Context context) {
+   public void setup(Context context) throws IOException, InterruptedException {
       mos = new MultipleOutputs<Text, IntWritable>(context);
+      super.setup(context);
    }
    
    @Override
@@ -154,7 +155,10 @@ public class DdiffReducer extends Reducer<Text, TaggedTextWithCountWritableCompa
    
    @Override
    public void cleanup(Context context) throws IOException, InterruptedException {
-      mos.close();
+      if (mos != null) {
+      	mos.close();
+      }
+      super.cleanup(context);
    }
    
    public static enum DdiffReduceCounter {
